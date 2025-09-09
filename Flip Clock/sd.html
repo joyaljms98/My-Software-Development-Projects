@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html data-theme="night" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Online Clock - Digital, Analog, and Flip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- Custom Clock and UI Styles --- */
+
+        /* Base utility styles (originally part of a larger framework like Tailwind) */
+        *,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }
+        ::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }
+        .btn{--tw-text-opacity:1;--tw-shadow:0 1px 2px 0 rgba(0,0,0,.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);--tw-bg-opacity:1;--tw-border-opacity:1;align-items:center;background-color:oklch(var(--btn-color,var(--b2))/var(--tw-bg-opacity));border-color:transparent;border-color:oklch(var(--btn-color,var(--b2))/var(--tw-border-opacity));border-radius:var(--rounded-btn,.5rem);border-width:var(--border-btn,1px);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow);color:var(--fallback-bc,oklch(var(--bc)/var(--tw-text-opacity)));cursor:pointer;display:inline-flex;flex-shrink:0;flex-wrap:wrap;font-size:.875rem;font-weight:600;gap:.5rem;height:3rem;justify-content:center;line-height:1em;min-height:3rem;outline-color:var(--fallback-bc,oklch(var(--bc)/1));padding-left:1rem;padding-right:1rem;text-align:center;text-decoration-line:none;transition-duration:.2s;transition-property:color,background-color,border-color,opacity,box-shadow,transform;transition-timing-function:cubic-bezier(0,0,.2,1);-webkit-user-select:none;-moz-user-select:none;user-select:none}.btn-disabled,.btn:disabled,.btn[disabled]{pointer-events:none}
+        .countdown{display:inline-flex}.countdown>*{display:inline-block;height:1em;overflow-y:hidden}.countdown>:before{content:"00\A 01\A 02\A 03\A 04\A 05\A 06\A 07\A 08\A 09\A 10\A 11\A 12\A 13\A 14\A 15\A 16\A 17\A 18\A 19\A 20\A 21\A 22\A 23\A 24\A 25\A 26\A 27\A 28\A 29\A 30\A 31\A 32\A 33\A 34\A 35\A 36\A 37\A 38\A 39\A 40\A 41\A 42\A 43\A 44\A 45\A 46\A 47\A 48\A 49\A 50\A 51\A 52\A 53\A 54\A 55\A 56\A 57\A 58\A 59\A 60\A 61\A 62\A 63\A 64\A 65\A 66\A 67\A 68\A 69\A 70\A 71\A 72\A 73\A 74\A 75\A 76\A 77\A 78\A 79\A 80\A 81\A 82\A 83\A 84\A 85\A 86\A 87\A 88\A 89\A 90\A 91\A 92\A 93\A 94\A 95\A 96\A 97\A 98\A 99\A";position:relative;text-align:center;top:calc(var(--value)*-1em);transition:all 1s cubic-bezier(1,0,0,1);white-space:pre}
+
+        /* Analog Clock Styles */
+        .analog-clock-section{height:100%;position:absolute;width:100%}.analog-clock-section:fullscreen{width:50vw}.analog-clock-line{display:flex;height:100%;justify-content:center;position:absolute;width:100%}.analog-clock-line:fullscreen{width:50vw}.analog-clock-line:before{background-color:var(--fallback-bc,oklch(var(--bc)/.3));content:var(--tw-content);height:.25rem;width:.125rem}.analog-clock-line-xl{display:flex;height:100%;justify-content:center;position:absolute;width:100%}.analog-clock-line-xl:fullscreen{width:50vw}.analog-clock-line-xl:before{background-color:var(--fallback-bc,oklch(var(--bc)/.3));content:var(--tw-content);height:.5rem;width:.25rem}.analog-clock-number{height:100%;padding:.75rem;position:absolute;width:100%}.analog-clock-number:fullscreen{width:50vw}.analog-clock-hand{--tw-translate-x:-50%;bottom:50%;left:50%;transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));transform-origin:bottom}
+
+        /* Flip Clock Styles */
+        :root .count-up{line-height:1em}.count-up{display:inline-flex;perspective:300px}.count-up>*{display:inline-block;height:1em;overflow-y:hidden}.count-up>:before{content:"99\A 98\A 97\A 96\A 95\A 94\A 93\A 92\A 91\A 90\A 89\A 88\A 87\A 86\A 85\A 84\A 83\A 82\A 81\A 80\A 79\A 78\A 77\A 76\A 75\A 74\A 73\A 72\A 71\A 70\A 69\A 68\A 67\A 66\A 65\A 64\A 63\A 62\A 61\A 60\A 59\A 58\A 57\A 56\A 55\A 54\A 53\A 52\A 51\A 50\A 49\A 48\A 47\A 46\A 45\A 44\A 43\A 42\A 41\A 40\A 39\A 38\A 37\A 36\A 35\A 34\A 33\A 32\A 31\A 30\A 29\A 28\A 27\A 26\A 25\A 24\A 23\A 22\A 21\A 20\A 19\A 18\A 17\A 16\A 15\A 14\A 13\A 12\A 11\A 10\A 09\A 08\A 07\A 06\A 05\A 04\A 03\A 02\A 01\A 00";position:relative;text-align:center;top:calc((99 - var(--value))*-1em);transform-style:preserve-3d;transition:all .6s cubic-bezier(.4,0,.2,1);white-space:pre}
+
+        /* General Body and UI Element Styles */
+        body {
+            background-color: #0e1729;
+            color: #c8cbd0;
+        }
+        .tab {
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .tab:hover {
+            opacity: 1;
+        }
+        .tab.tab-active {
+            opacity: 1;
+            border-bottom: 2px solid #38bdf8;
+            color: #38bdf8;
+        }
+
+        /* Modal backdrop for settings dialog */
+        .backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        dialog[open] {
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body class="bg-base-200">
+    <header class="navbar p-4 flex justify-between items-center">
+        <div class="navbar-start">
+            <h1 class="font-bold text-xl sm:text-3xl">Online Clocks</h1>
+        </div>
+        <div class="navbar-end">
+            <label title="Settings" id="settings-open" class="btn btn-ghost modal-button">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 md:h-6 md:w-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                </svg>
+            </label>
+        </div>
+    </header>
+
+    <main class="w-full flex justify-center p-5">
+        <div class="w-full max-w-3xl mx-auto">
+            <div data-tz="browser" class="text-center tabular-nums" id="clock-container">
+                <div id="digital-clock">
+                    <div data-format="dddd, MMMM D, YYYY" class="text-2xl" id="date"></div>
+                    <div data-format="h:mm:ss A" data-format-original="h:mm:ss A" class="text-5xl sm:text-7xl mt-6" id="clock"></div>
+                </div>
+
+                <div id="analog-clock" class="hidden relative bg-gray-800 rounded-full mx-auto w-80 h-80 sm:w-96 sm:h-96 border-4 border-gray-700">
+                    <div class="analog-clock-section analog-clock-ticks">
+                        <div style="transform: rotate(30deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(60deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(90deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(120deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(150deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(180deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(210deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(240deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(270deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(300deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(330deg);" class="analog-clock-line-xl"></div>
+                        <div style="transform: rotate(360deg);" class="analog-clock-line-xl"></div>
+                    </div>
+                    <div class="analog-clock-section analog-clock-numbers text-xl font-semibold">
+                        <div style="transform: rotate(30deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-30deg);">1</span></div>
+                        <div style="transform: rotate(60deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-60deg);">2</span></div>
+                        <div style="transform: rotate(90deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-90deg);">3</span></div>
+                        <div style="transform: rotate(120deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-120deg);">4</span></div>
+                        <div style="transform: rotate(150deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-150deg);">5</span></div>
+                        <div style="transform: rotate(180deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-180deg);">6</span></div>
+                        <div style="transform: rotate(210deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-210deg);">7</span></div>
+                        <div style="transform: rotate(240deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-240deg);">8</span></div>
+                        <div style="transform: rotate(270deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-270deg);">9</span></div>
+                        <div style="transform: rotate(300deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-300deg);">10</span></div>
+                        <div style="transform: rotate(330deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-330deg);">11</span></div>
+                        <div style="transform: rotate(360deg);" class="analog-clock-number"><span class="block" style="transform: rotate(-360deg);">12</span></div>
+                    </div>
+                    <div class="analog-clock-section analog-clock-hands">
+                        <div class="absolute analog-clock-hand rounded-full bg-white h-[25%] w-1.5" id="analog-clock-hour"></div>
+                        <div class="absolute analog-clock-hand rounded-full bg-white h-[40%] w-1" id="analog-clock-minute"></div>
+                        <div class="absolute analog-clock-hand bg-orange-400 h-[45%] w-0.5" id="analog-clock-second"></div>
+                        <div class="absolute analog-clock-hand rounded-full bg-orange-400 h-3 w-3 border-2 border-gray-800" style="bottom: 50%; left: 50%; transform: translate(-50%, 50%);"></div>
+                    </div>
+                     <div class="analog-clock-section analog-clock-info">
+                        <div class="absolute bottom-1/2 left-[62.5%] text-xl origin-bottom translate-x-[50%] translate-y-[50%] text-orange-400" id="analog-clock-date"></div>
+                    </div>
+                </div>
+
+                <div id="flip-clock" class="hidden grid grid-cols-4 gap-2 sm:gap-4 w-full">
+                    <div id="hours-container" class="flex justify-center items-center relative rounded-lg shadow-lg bg-gray-800 text-white text-center p-2 sm:p-6 w-full">
+                        <span class="count-up font-mono text-4xl sm:text-8xl"><span id="flip-hours" style="--value:0;"></span></span>
+                        <span class="w-full h-0.5 absolute bg-gray-900"></span>
+                    </div>
+                    <div id="minutes-container" class="flex justify-center items-center relative rounded-lg shadow-lg bg-gray-800 text-white text-center p-2 sm:p-6 w-full">
+                        <span class="count-up font-mono text-4xl sm:text-8xl"><span id="flip-minutes" style="--value:0;"></span></span>
+                        <span class="w-full h-0.5 absolute bg-gray-900"></span>
+                    </div>
+                    <div id="seconds-container" class="flex justify-center items-center relative rounded-lg shadow-lg bg-gray-800 text-white text-center p-2 sm:p-6 w-full">
+                        <span class="count-up font-mono text-4xl sm:text-8xl"><span id="flip-seconds" style="--value:0;"></span></span>
+                        <span class="w-full h-0.5 absolute bg-gray-900"></span>
+                    </div>
+                    <div id="ante-meridiem-container" class="flex justify-center items-center relative rounded-lg shadow-lg bg-gray-800 text-white text-center p-2 sm:p-6 w-full">
+                        <span class="font-mono text-4xl sm:text-8xl"><span id="flip-ante-meridiem"></span></span>
+                        <span class="w-full h-0.5 absolute bg-gray-900"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs flex justify-center mt-6 mb-8 gap-4">
+                <a href="#digital-clock" class="tab tab-active p-2 rounded">Digital Clock</a>
+                <a href="#analog-clock" class="tab p-2 rounded">Analog Clock</a>
+                <a href="#flip-clock" class="tab p-2 rounded">Flip Clock</a>
+            </div>
+        </div>
+    </main>
+    
+    <dialog id="settings-modal" class="modal bg-gray-800 text-white rounded-lg shadow-xl p-6 w-11/12 max-w-md">
+        <div class="modal-box relative">
+            <h2 class="text-2xl font-bold mb-4">Settings</h2>
+            <div class="divider bg-gray-700 h-px mb-4"></div>
+            <div class="form-control mt-4">
+                <label class="label cursor-pointer gap-4 flex justify-between items-center">
+                    <span class="label-text text-lg font-semibold text-white">Show date</span>
+                    <input id="show-date" type="checkbox" checked="checked" class="checkbox checkbox-primary" />
+                </label>
+            </div>
+            <div class="divider bg-gray-700 h-px my-4"></div>
+            <div class="form-control mt-4">
+                <label class="label cursor-pointer gap-4 flex justify-between items-center">
+                    <span class="label-text text-lg font-semibold text-white">Show seconds</span>
+                    <input id="show-seconds" type="checkbox" checked="checked" class="checkbox checkbox-primary" />
+                </label>
+            </div>
+            <div class="divider bg-gray-700 h-px my-4"></div>
+            <div class="form-control mt-4">
+                <label class="label cursor-pointer gap-4 flex justify-between items-center">
+                    <span class="label-text text-lg font-semibold text-white">24-hour format</span>
+                    <input id="twenty-four" type="checkbox" class="checkbox checkbox-primary" />
+                </label>
+            </div>
+            <div class="divider bg-gray-700 h-px mt-4"></div>
+            <div class="mt-6">
+                <form method="dialog">
+                    <button id="settings-close" class="btn btn-outline btn-error w-full">Close</button>
+                </form>
+            </div>
+        </div>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/localeData.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/updateLocale.js"></script>
+    <script>
+        // This script handles time updates, tab switching, and settings.
+        (() => {
+            // Basic dialog polyfill for older browsers that don't support <dialog>
+            (function() {
+                if (typeof window.HTMLDialogElement === 'function') return;
+
+                var dialogPolyfill = {};
+                dialogPolyfill.reposition = function(element) {
+                    var scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
+                    var topValue = scrollTop + (window.innerHeight - element.offsetHeight) / 2;
+                    element.style.top = Math.max(scrollTop, topValue) + 'px';
+                };
+                dialogPolyfill.registerDialog = function(dialog) {
+                    if (dialog.showModal) {
+                        return;
+                    }
+                    dialog.showModal = function() {
+                        dialog.setAttribute('open', '');
+                        if (!this.openAsModal_) {
+                             document.body.appendChild(this.backdrop_);
+                        }
+                        this.openAsModal_ = true;
+                        dialogPolyfill.reposition(dialog);
+                    }.bind(dialog);
+
+                    dialog.close = function() {
+                        dialog.removeAttribute('open');
+                        if(this.openAsModal_ && this.backdrop_.parentNode) {
+                            this.backdrop_.parentNode.removeChild(this.backdrop_);
+                        }
+                        this.openAsModal_ = false;
+                    }.bind(dialog);
+                    
+                    dialog.backdrop_ = document.createElement('div');
+                    dialog.backdrop_.className = 'backdrop';
+                    dialog.openAsModal_ = false;
+                };
+
+                var T = dialogPolyfill;
+                window.dialogPolyfill = T;
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    var dialogs = document.querySelectorAll('dialog');
+                    for (var i = 0; i < dialogs.length; i++) {
+                        T.registerDialog(dialogs[i]);
+                    }
+                });
+            }());
+            
+            // Extend dayjs with necessary plugins
+            dayjs.extend(dayjs_plugin_utc);
+            dayjs.extend(dayjs_plugin_timezone);
+            dayjs.extend(dayjs_plugin_updateLocale);
+            dayjs.locale(navigator.language.split('-')[0] || 'en');
+
+            // --- TABS MANAGER ---
+            // Manages switching between different clock views.
+            const TABS_MANAGER = {
+                tabs: document.querySelectorAll(".tab"),
+                init: function() {
+                    const that = this;
+                    this.originalHash = window.location.hash;
+                    if (this.originalHash) {
+                        history.replaceState(null, "", window.location.pathname + window.location.search);
+                    }
+                    this.bindEvents();
+                    this.handleInitialTab();
+                    if (this.originalHash) {
+                        setTimeout(function() {
+                            that.updateHash(that.findTabByHash(that.originalHash));
+                        }, 0);
+                    }
+                },
+                hideAll: function() {
+                    const that = this;
+                    this.tabs.forEach(function(tab) {
+                        tab.classList.remove("tab-active");
+                        const target = that.getTarget(tab);
+                        if (target) {
+                            target.classList.add("hidden");
+                        }
+                    });
+                },
+                getHash: function(tab) {
+                    if (tab) {
+                        return tab.getAttribute("href");
+                    }
+                },
+                getTarget: function(tab) {
+                    return document.querySelector(this.getHash(tab));
+                },
+                showTab: function(tab, update) {
+                    if (update === void 0) {
+                        update = true;
+                    }
+                    tab.classList.add("tab-active");
+                    const target = this.getTarget(tab);
+                    if (target) {
+                        // *** FIX ***
+                        // The original code set inline display styles (e.g., `style="display: grid"`),
+                        // which conflicted with the `hidden` class. By removing that logic and only
+                        // removing the `hidden` class, we let CSS handle the display property correctly.
+                        target.classList.remove("hidden");
+                    }
+                    if (update) {
+                        this.updateHash(tab);
+                    }
+                },
+                updateHash: function(tab) {
+                    const hash = this.getHash(tab);
+                    if (history.replaceState) {
+                        history.replaceState(null, "", hash);
+                    } else {
+                        window.location.hash = hash;
+                    }
+                },
+                findTabByHash: function(hash) {
+                    const that = this;
+                    return Array.from(this.tabs).find(function(tab) {
+                        return that.getHash(tab) === hash;
+                    });
+                },
+                handleInitialTab: function() {
+                    let initialTab = this.originalHash ?
+                        this.findTabByHash(this.originalHash) :
+                        this.tabs[0];
+                    if (initialTab) {
+                        this.hideAll();
+                        this.showTab(initialTab, false);
+                    }
+                },
+                bindEvents: function() {
+                    const that = this;
+                    this.tabs.forEach(function(tab) {
+                        tab.addEventListener("click", function(event) {
+                            event.preventDefault();
+                            that.hideAll();
+                            that.showTab(tab);
+                        });
+                    });
+                    window.addEventListener("popstate", function() {
+                        const hash = window.location.hash;
+                        const tab = that.findTabByHash(hash);
+                        if (tab) {
+                            that.hideAll();
+                            that.showTab(tab, false);
+                        }
+                    });
+                }
+            };
+
+            // --- SETTINGS MANAGER ---
+            // Manages user preferences like 24-hour format, showing seconds, etc.
+            const SETTINGS_MANAGER = {
+                showDateCheckbox: document.getElementById("show-date"),
+                showSecondsCheckbox: document.getElementById("show-seconds"),
+                twentyFourCheckbox: document.getElementById("twenty-four"),
+                flipClockEl: document.getElementById("flip-clock"),
+                clockEl: document.getElementById("clock"),
+                dateEl: document.getElementById("date"),
+                analogClockDateEl: document.getElementById("analog-clock-date"),
+                analogClockSecondHandEl: document.getElementById("analog-clock-second"),
+                secondsContainerEl: document.getElementById("seconds-container"),
+                amPmContainerEl: document.getElementById("ante-meridiem-container"),
+
+                init: function() {
+                    this.loadSettings();
+                    this.bindEvents();
+                    this.applySettings();
+                },
+                loadSettings: function() {
+                    this.showDateCheckbox.checked = localStorage.getItem("show-date-key") !== 'false';
+                    this.showSecondsCheckbox.checked = localStorage.getItem("show-seconds-key") !== 'false';
+                    this.twentyFourCheckbox.checked = localStorage.getItem("twenty-four-key") === 'true';
+                },
+                saveSettings: function() {
+                    localStorage.setItem("show-date-key", this.showDateCheckbox.checked);
+                    localStorage.setItem("show-seconds-key", this.showSecondsCheckbox.checked);
+                    localStorage.setItem("twenty-four-key", this.twentyFourCheckbox.checked);
+                },
+                applySettings: function() {
+                    // Apply date visibility
+                    const showDate = this.showDateCheckbox.checked;
+                    if (this.dateEl) this.dateEl.classList.toggle("hidden", !showDate);
+                    if (this.analogClockDateEl) this.analogClockDateEl.classList.toggle("hidden", !showDate);
+                    if (this.clockEl) this.clockEl.classList.toggle("mt-6", showDate);
+
+                    // Apply seconds and 24-hour format
+                    let originalFormat = this.clockEl.getAttribute("data-format-original");
+                    if (!originalFormat) return;
+
+                    const showSeconds = this.showSecondsCheckbox.checked;
+                    const use24Hour = this.twentyFourCheckbox.checked;
+                    let newFormat = originalFormat;
+                    let flipClockCols = 2; // Hours and Minutes
+
+                    if (showSeconds) {
+                        newFormat = newFormat.replace(/mm(?=($|\s|A))/, 'mm:ss');
+                        if(this.analogClockSecondHandEl) this.analogClockSecondHandEl.style.display = 'block';
+                        if(this.secondsContainerEl) this.secondsContainerEl.style.display = 'flex';
+                        flipClockCols++;
+                    } else {
+                        newFormat = newFormat.replace(/:ss/, '');
+                        if(this.analogClockSecondHandEl) this.analogClockSecondHandEl.style.display = 'none';
+                        if(this.secondsContainerEl) this.secondsContainerEl.style.display = 'none';
+                    }
+
+                    if (use24Hour) {
+                        newFormat = newFormat.replace('h:', 'H:').replace(' A', '');
+                         if(this.amPmContainerEl) this.amPmContainerEl.style.display = 'none';
+                    } else {
+                        newFormat = newFormat.replace('H:', 'h:');
+                        if (!newFormat.includes(' A')) newFormat += ' A';
+                         if(this.amPmContainerEl) this.amPmContainerEl.style.display = 'flex';
+                        flipClockCols++;
+                    }
+                    
+                    if (this.clockEl) this.clockEl.setAttribute("data-format", newFormat);
+                     if (this.flipClockEl) {
+                        this.flipClockEl.className = this.flipClockEl.className.replace(/grid-cols-\d/, `grid-cols-${flipClockCols}`);
+                     }
+
+                    this.saveSettings();
+                },
+                bindEvents: function() {
+                    this.showDateCheckbox.addEventListener("change", () => this.applySettings());
+                    this.showSecondsCheckbox.addEventListener("change", () => this.applySettings());
+                    this.twentyFourCheckbox.addEventListener("change", () => this.applySettings());
+                }
+            };
+
+            // --- MODAL MANAGER ---
+            // Handles showing and hiding the settings modal dialog.
+            const MODAL_MANAGER = {
+                registerModal: function(modalId, openId, closeId) {
+                    const modal = document.getElementById(modalId);
+                    const openBtn = document.getElementById(openId);
+                    const closeBtn = document.getElementById(closeId);
+                    if (modal && openBtn && closeBtn) {
+                         // Use the dialog polyfill if native dialog is not supported.
+                        if (typeof window.dialogPolyfill !== 'undefined') {
+                            window.dialogPolyfill.registerDialog(modal);
+                        }
+                        openBtn.addEventListener("click", () => modal.showModal());
+                        closeBtn.addEventListener("click", () => modal.close());
+                    }
+                }
+            };
+
+            // --- CLOCK UPDATER ---
+            // Updates the time for all clocks every second.
+            const CLOCK_UPDATER = {
+                init: function() {
+                    this.clockEl = document.getElementById("clock");
+                    this.dateEl = document.getElementById("date");
+                    this.analogHour = document.getElementById("analog-clock-hour");
+                    this.analogMinute = document.getElementById("analog-clock-minute");
+                    this.analogSecond = document.getElementById("analog-clock-second");
+                    this.analogDate = document.getElementById("analog-clock-date");
+                    this.flipHours = document.getElementById("flip-hours");
+                    this.flipMinutes = document.getElementById("flip-minutes");
+                    this.flipSeconds = document.getElementById("flip-seconds");
+                    this.flipAmPm = document.getElementById("flip-ante-meridiem");
+                    this.title = document.title;
+                    
+                    this.updateTime();
+                    setInterval(() => this.updateTime(), 1000);
+                },
+                updateTime: function() {
+                    const now = dayjs();
+                    const dateFormat = this.dateEl.getAttribute("data-format");
+                    const timeFormat = this.clockEl.getAttribute("data-format");
+
+                    // Update Digital Clock
+                    this.clockEl.innerText = now.format(timeFormat);
+                    this.dateEl.innerText = now.format(dateFormat);
+                    
+                    // Update page title with the current time when tab is not active
+                    if (document.hasFocus()) {
+                        document.title = this.title;
+                    } else {
+                        document.title = now.format(timeFormat) + " - " + this.title;
+                    }
+
+                    // Update Analog Clock
+                    const hours = now.hour();
+                    const minutes = now.minute();
+                    const seconds = now.second();
+                    const hourDeg = (hours % 12 + minutes / 60) * 30;
+                    const minuteDeg = (minutes + seconds / 60) * 6;
+                    const secondDeg = seconds * 6;
+                    this.analogHour.style.transform = `translateX(-50%) rotate(${hourDeg}deg)`;
+                    this.analogMinute.style.transform = `translateX(-50%) rotate(${minuteDeg}deg)`;
+                    this.analogSecond.style.transform = `translateX(-50%) rotate(${secondDeg}deg)`;
+                    this.analogDate.innerText = now.date();
+
+                    // Update Flip Clock
+                    const use24Hour = document.getElementById('twenty-four')?.checked;
+                    this.flipHours.style.setProperty("--value", use24Hour ? hours : now.format('h'));
+                    this.flipMinutes.style.setProperty("--value", minutes);
+                    this.flipSeconds.style.setProperty("--value", seconds);
+                     if (this.flipAmPm) {
+                        this.flipAmPm.innerText = use24Hour ? '' : now.format('A');
+                    }
+                }
+            };
+            
+            // Initialize all modules when the page content has loaded.
+            document.addEventListener('DOMContentLoaded', () => {
+                TABS_MANAGER.init();
+                SETTINGS_MANAGER.init();
+                CLOCK_UPDATER.init();
+                MODAL_MANAGER.registerModal("settings-modal", "settings-open", "settings-close");
+            });
+        })();
+    </script>
+
+</body>
+</html>

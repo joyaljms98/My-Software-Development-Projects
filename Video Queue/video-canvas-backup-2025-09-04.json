@@ -1,0 +1,200 @@
+{
+  "queues": [
+    {
+      "id": "q_1756897059419",
+      "name": "My First Queue",
+      "nodes": [
+        {
+          "id": "hkHHwA-vEyQ",
+          "title": "How To Create Portfolio Website In React JS | Complete React JS Website Project Tutorial",
+          "thumbnailUrl": "https://i.ytimg.com/vi/hkHHwA-vEyQ/hqdefault.jpg",
+          "x": 61,
+          "y": 43,
+          "status": "played"
+        },
+        {
+          "id": "VMZ7lcSdVnY",
+          "title": "How To Make A Quiz App In React JS | Build Quiz App Using React JS Step by Step Tutorial",
+          "thumbnailUrl": "https://i.ytimg.com/vi/VMZ7lcSdVnY/hqdefault.jpg",
+          "x": 44,
+          "y": 344,
+          "status": "played"
+        },
+        {
+          "id": "jeglK4s20FA",
+          "title": "Top 5 React UI Component Libraries. #reactjs",
+          "thumbnailUrl": "https://i.ytimg.com/vi/jeglK4s20FA/hqdefault.jpg",
+          "x": 46,
+          "y": 647,
+          "status": "played"
+        },
+        {
+          "id": "9jRTo7ILxQc",
+          "title": "How To Create Complete Food Delivery App Using React JS Step By Step Tutorial",
+          "thumbnailUrl": "https://i.ytimg.com/vi/9jRTo7ILxQc/hqdefault.jpg",
+          "x": 327,
+          "y": 634,
+          "status": "played"
+        },
+        {
+          "id": "I2UBjN5ER4s",
+          "title": "React Website Tutorial - Beginner React JS Project Fully Responsive",
+          "thumbnailUrl": "https://i.ytimg.com/vi/I2UBjN5ER4s/hqdefault.jpg",
+          "x": 47,
+          "y": 960,
+          "status": "unplayed",
+          "createdAt": "2025-09-03T17:46:40.653Z"
+        },
+        {
+          "id": "ZztliJ9kDNM",
+          "title": "Portfolio Website Tutorial with React, Vite & Tailwind CSS",
+          "thumbnailUrl": "https://i.ytimg.com/vi/ZztliJ9kDNM/hqdefault.jpg",
+          "x": 338,
+          "y": 973,
+          "status": "unplayed",
+          "createdAt": "2025-09-03T17:46:44.477Z"
+        },
+        {
+          "id": "N11x5t0jE1w",
+          "title": "The DJI Neo Could Change Drones Forever",
+          "thumbnailUrl": "https://i.ytimg.com/vi/N11x5t0jE1w/hqdefault.jpg",
+          "x": 359,
+          "y": 57,
+          "status": "played",
+          "createdAt": "2025-09-04T03:46:10.338Z"
+        },
+        {
+          "id": "NqchrMXx2_4",
+          "title": "10 Amazon Tech Gadgets Review (@justicebuys) #amazonfinds #products #tech #home",
+          "thumbnailUrl": "https://i.ytimg.com/vi/NqchrMXx2_4/hqdefault.jpg",
+          "x": 655,
+          "y": 209,
+          "status": "played",
+          "createdAt": "2025-09-04T03:47:34.192Z"
+        },
+        {
+          "id": "5VMckmQneCk",
+          "title": "Samsung S25 Ultra Review - Things just got Messy.",
+          "thumbnailUrl": "https://i.ytimg.com/vi/5VMckmQneCk/hqdefault.jpg",
+          "x": 369,
+          "y": 348,
+          "status": "unplayed",
+          "createdAt": "2025-09-04T04:26:34.050Z"
+        }
+      ],
+      "connections": [
+        {
+          "from": "hkHHwA-vEyQ",
+          "to": "VMZ7lcSdVnY"
+        },
+        {
+          "from": "VMZ7lcSdVnY",
+          "to": "jeglK4s20FA"
+        },
+        {
+          "from": "VMZ7lcSdVnY",
+          "to": "9jRTo7ILxQc"
+        },
+        {
+          "from": "jeglK4s20FA",
+          "to": "I2UBjN5ER4s"
+        },
+        {
+          "from": "9jRTo7ILxQc",
+          "to": "ZztliJ9kDNM"
+        },
+        {
+          "from": {
+            "id": "hkHHwA-vEyQ",
+            "direction": "bottom"
+          },
+          "to": {
+            "id": "VMZ7lcSdVnY",
+            "direction": "top"
+          }
+        },
+        {
+          "from": {
+            "id": "hkHHwA-vEyQ",
+            "direction": "bottom"
+          },
+          "to": {
+            "id": "9jRTo7ILxQc",
+            "direction": "top"
+          }
+        },
+        {
+          "from": {
+            "id": "VMZ7lcSdVnY",
+            "direction": "bottom"
+          },
+          "to": {
+            "id": "jeglK4s20FA",
+            "direction": "top"
+          }
+        },
+        {
+          "from": {
+            "id": "jeglK4s20FA",
+            "direction": "bottom"
+          },
+          "to": {
+            "id": "I2UBjN5ER4s",
+            "direction": "top"
+          }
+        },
+        {
+          "from": {
+            "id": "9jRTo7ILxQc",
+            "direction": "bottom"
+          },
+          "to": {
+            "id": "ZztliJ9kDNM",
+            "direction": "top"
+          }
+        },
+        {
+          "from": {
+            "id": "hkHHwA-vEyQ",
+            "direction": "right"
+          },
+          "to": {
+            "id": "N11x5t0jE1w",
+            "direction": "left"
+          }
+        },
+        {
+          "from": {
+            "id": "hkHHwA-vEyQ",
+            "direction": "right"
+          },
+          "to": {
+            "id": "NqchrMXx2_4",
+            "direction": "left"
+          }
+        },
+        {
+          "from": {
+            "id": "N11x5t0jE1w",
+            "direction": "right"
+          },
+          "to": {
+            "id": "NqchrMXx2_4",
+            "direction": "top"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q_1756921230825",
+      "name": "New Queue",
+      "nodes": [],
+      "connections": []
+    }
+  ],
+  "activeQueueId": "q_1756897059419",
+  "lastPlayed": {
+    "queueId": "q_1756897059419",
+    "videoId": "N11x5t0jE1w"
+  }
+}

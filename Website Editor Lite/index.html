@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Web Editor</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        .monaco-editor-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="loading-screen" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    </div>
+
+    <div id="file-selection-container" class="min-h-screen flex flex-col items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full text-center">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Web Editor</h1>
+            <p class="text-gray-600 mb-6">Select a local folder containing your HTML, CSS, and JS files to get started. The app will load and make them editable.</p>
+            <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                Select Folder
+                <input type="file" id="file-input" class="hidden" webkitdirectory directory multiple>
+            </label>
+        </div>
+    </div>
+
+    <div id="project-selection-container" class="min-h-screen flex-col items-center justify-center p-4 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4 text-center">Select Project Files</h1>
+            <p class="text-gray-600 mb-6 text-center">Choose the HTML, CSS, JS, and image files you want to work on.</p>
+            
+            <div id="file-list" class="space-y-2 mb-6 max-h-96 overflow-y-auto border border-gray-200 p-4 rounded-lg">
+                </div>
+
+            <div class="flex justify-center space-x-4">
+                <button id="load-files-button" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+                    Load Selected Files
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editor-container" class="hidden flex flex-col h-screen overflow-hidden">
+        
+        <header class="bg-white shadow-md p-4 flex justify-between items-center header-fixed w-full">
+            <h1 class="text-3xl font-bold text-gray-800">JJ's Web Editor</h1>
+            <div class="flex space-x-2">
+                <button id="undo-button" class="bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 opacity-50 cursor-not-allowed">Undo (Ctrl+Z)</button>
+                <button id="redo-button" class="bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 opacity-50 cursor-not-allowed">Redo (Ctrl+Y)</button>
+            </div>
+            <div class="flex space-x-4">
+                <button id="preview-button" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-md">
+                    Preview in New Tab
+                </button>
+                <button id="save-button" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-md">
+                    Save as ZIP
+                </button>
+                <button id="about-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg">About</button>
+            </div>
+        </header>
+
+        <main class="main-content-grid p-2 md:p-4 gap-4 flex-1 overflow-y-auto">
+            
+            <div id="tab-panel-container" class="bg-white rounded-xl shadow-lg p-6 flex flex-col gap-6" style="height: calc(100vh - 7rem);">
+                <div class="flex space-x-2 mb-4">
+                    <button id="edit-panel-tab-btn" class="flex-1 py-2 px-4 rounded-lg bg-blue-500 text-white font-semibold">Edit Panel</button>
+                    <button id="code-editor-tab-btn" class="flex-1 py-2 px-4 rounded-lg bg-gray-200 text-gray-700 font-semibold">Code Editor</button>
+                </div>
+            
+                <aside id="edit-panel" class="overflow-y-auto h-full">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Edit Panel</h2>
+                    <p class="text-gray-600 mb-6">Click on an element in the preview to edit its properties here.</p>
+                    
+                    <div id="editor-controls" class="space-y-6">
+                        <div>
+                            <label for="text-editor" class="block text-sm font-medium text-gray-700 mb-2">Text Content</label>
+                            <textarea id="text-editor" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" placeholder="Edit text content here..."></textarea>
+                        </div>
+    
+                        <div id="link-editor-container" class="hidden">
+                            <label for="link-editor" class="block text-sm font-medium text-gray-700 mb-2">Link (href)</label>
+                            <input type="text" id="link-editor" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" placeholder="e.g., https://example.com">
+                        </div>
+                        
+                        <div>
+                            <label for="font-size-input" class="block text-sm font-medium text-gray-700 mb-2">Font Size (px)</label>
+                            <input type="number" id="font-size-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" placeholder="e.g., 16">
+                        </div>
+    
+                        <div>
+                            <label for="font-family-select" class="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
+                            <select id="font-family-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                                <option value="Inter, sans-serif">Inter</option>
+                                <option value="Arial, sans-serif">Arial</option>
+                                <option value="Georgia, serif">Georgia</option>
+                                <option value="Courier New, monospace">Courier New</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Header Style</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button class="header-style-btn bg-gray-100 text-gray-700 hover:bg-gray-200 py-1 px-3 rounded-lg" data-tag="h1">H1</button>
+                                <button class="header-style-btn bg-gray-100 text-gray-700 hover:bg-gray-200 py-1 px-3 rounded-lg" data-tag="h2">H2</button>
+                                <button class="header-style-btn bg-gray-100 text-gray-700 hover:bg-gray-200 py-1 px-3 rounded-lg" data-tag="h3">H3</button>
+                                <button class="header-style-btn bg-gray-100 text-gray-700 hover:bg-gray-200 py-1 px-3 rounded-lg" data-tag="h4">H4</button>
+                                <button class="header-style-btn bg-gray-100 text-gray-700 hover:bg-gray-200 py-1 px-3 rounded-lg" data-tag="h5">H5</button>
+                                <button class="header-style-btn bg-gray-100 text-gray-700 hover:bg-gray-200 py-1 px-3 rounded-lg" data-tag="h6">H6</button>
+                                <button class="header-style-btn bg-gray-100 text-gray-700 hover:bg-gray-200 py-1 px-3 rounded-lg" data-tag="p">P</button>
+                            </div>
+                        </div>
+    
+                        <div>
+                            <label for="color-picker" class="block text-sm font-medium text-gray-700 mb-2">Text Color</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" id="color-picker" class="w-10 h-10 p-1 border border-gray-300 rounded-lg cursor-pointer">
+                                <span id="color-value" class="text-gray-600 text-sm">#000000</span>
+                            </div>
+                        </div>
+    
+                        <div>
+                            <label for="padding-input" class="block text-sm font-medium text-gray-700 mb-2">Padding (px)</label>
+                            <input type="number" id="padding-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" placeholder="e.g., 10">
+                        </div>
+                    </div>
+    
+                    <div id="status-message" class="mt-6 text-red-500 text-sm font-medium hidden"></div>
+                </aside>
+
+                <div id="code-editor-section" class="flex flex-col gap-6 h-full hidden">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Code Editor</h3>
+                    <div class="flex space-x-2 mb-4">
+                        <button id="html-tab" class="flex-1 py-2 px-4 rounded-lg bg-blue-500 text-white font-semibold">HTML</button>
+                        <button id="css-tab" class="flex-1 py-2 px-4 rounded-lg bg-gray-200 text-gray-700 font-semibold">CSS</button>
+                        <button id="js-tab" class="flex-1 py-2 px-4 rounded-lg bg-gray-200 text-gray-700 font-semibold">JS</button>
+                    </div>
+                    
+                    <div id="code-content" class="relative flex-1">
+                        <div id="html-editor-container" class="monaco-editor-container"></div>
+                        <div id="css-editor-container" class="monaco-editor-container hidden"></div>
+                        <div id="js-editor-container" class="monaco-editor-container hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center" style="height: calc(100vh - 7rem);">
+                <div class="w-full h-full flex items-center justify-center">
+                    <iframe id="preview-iframe" title="Website Preview" class="flex-1 w-full aspect-[16/9]"></iframe>
+                </div>
+            </div>
+        </main>
+        
+    </div>
+    
+    <div id="about-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center relative">
+            <button id="close-about-modal" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900">&times;</button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">About the Developer</h2>
+            <div class="text-gray-600 space-y-2 text-left">
+                <p><strong>Developed by:</strong> Joyal James</p>
+                <p>An MCA Student and a passionate developer from Kerala, India, creating tools to make the web a more organized place.</p>
+                <p><strong>Version:</strong> 13.2</p>
+                <p><strong>Last Updated:</strong> July 21, 2025</p>
+                <p class="mt-4">Visit My Github for more updates:</p>
+                <a href="https://github.com/joyaljms98" target="_blank" class="text-blue-600 hover:underline block">Github</a>
+                <p class="mt-2">Support my work:</p>
+                <a href="https://buymeacoffee.com/joyaljms98i" target="_blank" class="text-yellow-600 hover:underline block">Buy Me a Coffee</a>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.20.0/min/vs/loader.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live YouTube Search & Learning Canvas</title>
+    <link rel="icon" type="image/png" sizes="128x128" href="assets/icon128.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="assets/icon64.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icon16.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-gray-200">
+
+    <header class="bg-gray-900/70 backdrop-blur-sm p-4 flex items-center justify-between shadow-lg sticky top-0 z-30 border-b border-gray-800">
+        <div class="flex items-center space-x-3">
+            <button id="canvas-btn" class="p-2 rounded-full hover:bg-gray-700 transition">
+                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+            <img src="assets/icon1.png" alt="Video Queue Logo" class="h-8 w-8 hidden sm:block">
+            <h1 class="text-2xl font-bold tracking-wider hidden sm:block">Video Queue</h1>
+        </div>
+        <div class="flex-grow max-w-2xl mx-4">
+            <div class="flex justify-center mb-2 space-x-2">
+                <button id="search-type-video" class="px-4 py-1 text-sm font-semibold border-b-2 border-sky-500 text-white transition-colors duration-200">Videos</button>
+                <button id="search-type-playlist" class="px-4 py-1 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors duration-200">Playlists</button>
+            </div>
+            <div class="relative">
+                <input type="text" id="search-input" placeholder="Search for videos to add to your canvas..." class="bg-gray-800 border border-gray-700 text-white text-sm rounded-full focus:ring-sky-500 focus:border-sky-500 block w-full pl-5 pr-12 p-2.5 transition">
+                <button id="search-btn" class="absolute inset-y-0 right-0 flex items-center pr-4">
+                    <svg class="w-5 h-5 text-gray-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div class="flex items-center">
+             <button id="click-history-btn" class="p-2 rounded-full hover:bg-gray-700 transition" title="Click History">
+                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </button>
+            <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-gray-700 transition ml-2" title="Change Theme">
+            </button>
+            <button id="settings-btn" class="p-2 rounded-full hover:bg-gray-700 transition ml-2">
+                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <div id="canvas-overlay" class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none"></div>
+    <aside id="canvas-sidebar" class="fixed top-0 left-0 h-full w-2/3 min-w-[500px] bg-gray-900 shadow-2xl z-50 transform -translate-x-full flex flex-col">
+        <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
+            <h2 class="text-xl font-bold">Links Canvas</h2>
+            <div class="flex items-center gap-2">
+                <button id="export-btn" title="Export to File" class="flex items-center gap-2 p-2 bg-green-600 hover:bg-green-700 rounded-lg transition text-sm">
+                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                     <span>Backup</span>
+                </button>
+                <button id="import-btn" title="Import from File" class="flex items-center gap-2 p-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition text-sm">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    <span>Restore</span>
+                </button>
+                <input type="file" id="import-file-input" class="hidden" accept=".json">
+            </div>
+            <div class="flex items-center">
+                 <button id="expand-canvas-btn" class="p-2 rounded-full hover:bg-gray-700 transition">
+                    <svg class="w-5 h-5 expand-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4"></path></svg>
+                    <svg class="w-5 h-5 collapse-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h6m-3-3v6m-11-3h6m-3-3v6"></path></svg>
+                </button>
+                <button id="close-canvas-btn" class="p-2 rounded-full hover:bg-gray-700 transition">&times;</button>
+            </div>
+        </div>
+        
+        <div class="p-2 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
+             <div id="tabs-container" class="flex items-center gap-2 overflow-x-auto pb-2 flex-grow"></div>
+             <button id="canvas-history-btn" class="p-2 rounded-full hover:bg-gray-700 transition ml-2 flex-shrink-0" title="Canvas Watch History">
+                 <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </button>
+        </div>
+
+        <div class="p-3 border-b border-gray-700 flex-shrink-0">
+            <div class="flex gap-2">
+                <input type="text" id="paste-url-input" class="bg-gray-800 border border-gray-600 text-sm rounded-lg w-full p-2 flex-grow" placeholder="Or paste a YouTube video URL here...">
+                <button id="add-from-url-btn" class="bg-indigo-600 hover:bg-indigo-700 text-sm font-bold py-2 px-4 rounded-lg flex-shrink-0">Add</button>
+            </div>
+        </div>
+
+        <div id="canvas-area" class="flex-grow bg-gray-800/50 overflow-auto relative">
+            <div id="canvas-pan-zoom-container" class="relative w-[3000px] h-[3000px]" style="transform-origin: 0 0;">
+                <svg id="canvas-svg-layer"></svg>
+                <div id="nodes-container"></div>
+                 <p class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-500 text-center pointer-events-none">Drag items from search results here!</p>
+            </div>
+            <button id="delete-connection-btn" class="hidden absolute z-20 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold transform -translate-x-1/2 -translate-y-1/2 hover:bg-red-500 transition">×</button>
+        </div>
+
+        <div id="zoom-controls" class="absolute bottom-4 right-4 bg-gray-900/50 backdrop-blur-sm p-2 rounded-lg flex items-center gap-2 z-10">
+            <span class="text-xs">Zoom</span>
+            <input type="range" id="zoom-slider" min="0.2" max="2" step="0.1" value="1" class="w-24">
+        </div>
+        
+        <div id="sidebar-resizer" class="absolute top-0 right-0 h-full w-2 cursor-col-resize z-10"></div>
+    </aside>
+
+    <main id="main-content" class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div id="video-grid" class="pb-12"></div>
+    </main>
+    
+    <div id="click-history-overlay" class="fixed inset-0 bg-black/60 z-30 opacity-0 pointer-events-none"></div>
+    <aside id="click-history-sidebar" class="fixed top-0 right-0 h-full w-96 bg-gray-800 shadow-2xl z-40 transform translate-x-full flex flex-col">
+        <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
+            <h2 class="text-xl font-bold">Click History</h2>
+            <button id="close-click-history-btn" class="p-2 rounded-full hover:bg-gray-700 transition">&times;</button>
+        </div>
+        <div id="click-history-list-container" class="flex-grow overflow-y-auto"></div>
+        <div class="p-4 border-t border-gray-700 flex-shrink-0">
+            <button id="clear-click-history-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Clear All History</button>
+        </div>
+    </aside>
+
+    <div id="settings-overlay" class="fixed inset-0 bg-black/60 z-30 opacity-0 pointer-events-none"></div>
+    <aside id="settings-sidebar" class="fixed top-0 right-0 h-full w-80 bg-gray-800 shadow-2xl p-6 z-40 transform translate-x-full overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold">Settings</h2>
+            <button id="close-settings-btn" class="p-2 rounded-full hover:bg-gray-700 transition">&times;</button>
+        </div>
+        <div id="api-key-section">
+            <label for="api-key-input" class="block mb-2 text-sm font-medium text-gray-300">YouTube API Key</label>
+            <div id="api-key-display" class="hidden items-center justify-between bg-gray-900 p-3 rounded-lg">
+                <p class="text-green-400 text-sm">API Key is saved.</p>
+                <button id="edit-api-key-btn" class="text-sky-400 hover:text-sky-300 text-sm font-semibold">Edit</button>
+            </div>
+            <div id="api-key-form">
+                <input type="password" id="api-key-input" class="bg-gray-700 border border-gray-600 text-gray-300 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5 transition">
+                <button id="save-api-key-btn" class="mt-3 w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg transition">Save Key</button>
+                 <p class="mt-2 text-xs text-gray-500">Your key is stored securely in your browser's local storage.</p>
+            </div>
+        </div>
+        <div class="mt-6 text-xs text-gray-400 border-t border-gray-700 pt-4 space-y-3">
+            <h3 class="font-bold text-sm mb-2 text-gray-200">How to Get a YouTube API Key</h3>
+            <div>
+                <strong class="text-gray-300">1. Go to the Google Cloud Console</strong>
+                <p>Visit <a href="https://console.cloud.google.com/" target="_blank" class="text-sky-400 hover:underline">console.cloud.google.com</a></p>
+            </div>
+            <div>
+                <strong class="text-gray-300">2. Create a New Project</strong>
+                <p>Click the project dropdown, select "New Project", give it a name, and click "Create".</p>
+            </div>
+            <div>
+                <strong class="text-gray-300">3. Enable the API</strong>
+                <ol class="list-disc list-inside space-y-1 pl-2 mt-1">
+                    <li>Go to <span class="font-semibold">APIs & Services > Library</span>.</li>
+                    <li>Search for "YouTube Data API v3" and enable it.</li>
+                </ol>
+            </div>
+            <div>
+                <strong class="text-gray-300">4. Get the API Key</strong>
+                <ol class="list-disc list-inside space-y-1 pl-2 mt-1">
+                     <li>Go to <span class="font-semibold">APIs & Services > Credentials</span>.</li>
+                     <li>Click "<span class="font-semibold">+ CREATE CREDENTIALS</span>" and select "API key".</li>
+                     <li>Copy the key that pops up.</li>
+                </ol>
+            </div>
+        </div>
+        <div class="mt-8 border-t border-red-500/30 pt-4">
+            <h3 class="font-bold text-sm mb-2 text-red-400">Danger Zone</h3>
+            <p class="text-xs text-gray-400 mb-3">This action cannot be undone. This will permanently delete your API key and all saved canvases.</p>
+            <button id="delete-all-data-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                Delete All Data & Reset
+            </button>
+        </div>
+        <div class="mt-8 border-t border-gray-700 pt-4">
+            <button id="about-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition">
+                About The Dev
+            </button>
+        </div>
+    </aside>
+    
+    <div id="player-modal" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl aspect-video relative">
+            <button id="close-player-btn" class="absolute -top-3 -right-3 text-white bg-red-600 rounded-full h-8 w-8 flex items-center justify-center font-bold z-10">&times;</button>
+            <div id="youtube-player-container"></div>
+            <div id="branch-choice-overlay" class="hidden absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-4">
+                 <h3 class="text-2xl font-bold mb-4">Choose Next Video</h3>
+                 <div id="branch-options" class="flex flex-col sm:flex-row gap-4"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="canvas-history-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-xl flex flex-col" style="height: 70vh;">
+            <div class="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
+                <h3 class="text-lg font-bold text-white">Canvas Watch History</h3>
+                <button id="close-canvas-history-btn" class="p-2 rounded-full hover:bg-gray-700 transition">&times;</button>
+            </div>
+            <div id="canvas-history-list-container" class="flex-grow overflow-y-auto"></div>
+            <div class="p-2 border-t border-gray-700 text-right flex-shrink-0">
+                 <button id="clear-canvas-history-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Clear History</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-select-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-sm">
+            <div class="p-4 border-b border-gray-700">
+                <h3 class="text-lg font-bold text-white">Add to which tab?</h3>
+            </div>
+            <div id="tab-selection-list" class="p-2 max-h-64 overflow-y-auto"></div>
+            <div class="p-2 border-t border-gray-700 text-right">
+                 <button id="cancel-tab-select-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="export-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-4 border-b border-gray-700">
+                <h3 class="text-lg font-bold text-white">Select Tabs to Backup</h3>
+            </div>
+            <div id="export-tab-list" class="p-4 max-h-80 overflow-y-auto space-y-2">
+                </div>
+            <div class="p-3 border-t border-gray-700 flex justify-between items-center">
+                <button id="export-select-all-btn" class="text-sky-400 hover:text-sky-300 text-sm font-semibold">Select All</button>
+                <div>
+                    <button id="cancel-export-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition">Cancel</button>
+                    <button id="confirm-export-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition ml-2">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="import-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-md text-center">
+            <div class="p-6">
+                <h3 class="text-lg font-bold text-white mb-2">How would you like to restore?</h3>
+                <p class="text-sm text-gray-400 mb-6">Merging will add the imported tabs to your existing ones. Overwriting will replace everything.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="import-merge-btn" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-lg transition">Merge</button>
+                    <button id="import-overwrite-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition">Overwrite</button>
+                </div>
+            </div>
+            <div class="p-3 bg-gray-900/50 text-center">
+                 <button id="cancel-import-btn" class="text-gray-400 hover:text-white text-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="about-modal-overlay" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+        <div class="about-modal-content bg-gray-900 rounded-lg shadow-xl relative text-white">
+            <button class="close-modal-btn" id="about-modal-close-btn" title="Close">&times;</button>
+            <div class="about-modal-header">
+                <img src="assets/icon64.png" alt="Video Queue Logo" class="about-logo">
+                <h2>About Video Queue</h2>
+            </div>
+            <div class="about-modal-body">
+                <div class="developer-info">
+                    <h4>Developed by</h4><h3>Joyal James</h3>
+                    <p class="dev-bio">An MCA Student and a passionate developer<br> from Kerala, India, creating tools to make the<br>web a more organized place.</p>
+                </div>
+                <div class="project-details">
+                    <p><strong>Version:</strong> 16.0</p>
+                    <p><strong>Last Updated:</strong> September 4, 2025</p>
+                    <p>Visit My Github for more updates</p>
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/joyaljms98" target="_blank" class="social-link github" title="View project on GitHub">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg>
+                        <span>GitHub</span>
+                    </a>
+                    <a href="https://buymeacoffee.com/joyaljms98i" target="_blank" class="social-link bmc" title="Support the developer!">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.34,5.82a1,1,0,0,0-1.07-.13A8.44,8.44,0,0,1,16,6a1,1,0,0,0-1,1,6.56,6.56,0,0,1-2.7,5.54,1,1,0,0,0-.3.72V19a1,1,0,0,0,1,1h4a1,1,0,0,0,1-1V13.26a1,1,0,0,0-.3-.72A6.56,6.56,0,0,1,15,7a1,1,0,0,0-1-1,8.44,8.44,0,0,1-3.27-.31,1,1,0,0,0-1.07.13,1,1,0,0,0-.33.74,1,1,0,0,0,1,.84,10.2,10.2,0,0,0,3.54.43,8.56,8.56,0,0,0,3.34-.43,1,1,0,0,0,1-.84A1,1,0,0,0,20.34,5.82ZM2,19H7a1,1,0,0,0,1-1V8A1,1,0,0,0,7,7H2A1,1,0,0,0,1,8V18A1,1,0,0,0,2,19ZM3,9H6v8H3Z"></path></svg>
+                        <span>Buy Me a Coffee</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <footer class="text-center py-6 text-gray-600 text-sm">
+        <p>Powered by the YouTube Data API v3.</p>
+    </footer>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="script.js"></script>
+</body>
+</html>
