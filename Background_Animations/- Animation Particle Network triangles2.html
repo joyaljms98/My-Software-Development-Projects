@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Particle Network</title>
+    <style>
+        /* Basic CSS reset and body styling */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.5s ease;
+        }
+
+        /* Canvas styling to ensure it fills the background */
+        #background-canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Centered content container */
+        .content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: white;
+            text-align: center;
+        }
+
+        .message-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 { font-size: 2.5rem; margin: 0; }
+        p { font-size: 1.2rem; margin-top: 10px; }
+        
+        /* Main container for all controls */
+        .controls-container {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            z-index: 3;
+        }
+        
+        /* The settings panel, hidden by default */
+        #settings-panel {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            position: absolute;
+            bottom: 75px;
+            right: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            transform: translateY(10px);
+            opacity: 0;
+        }
+
+        #settings-panel.visible {
+            display: flex;
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .control-group {
+            width: 100%;
+            text-align: center;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .shape-selector, .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .slider-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: white;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: white;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+
+        /* Styling for the control buttons */
+        .control-btn {
+            padding: 10px 15px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .control-btn.active {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        
+        #settings-btn {
+            width: 55px;
+            height: 55px;
+            font-size: 1.8rem;
+            border-radius: 50%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+        }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="background-canvas"></canvas>
+    <div class="content">
+        <div class="message-box">
+            <h1>Welcome</h1>
+            <p>Interactive Particle Network</p>
+        </div>
+    </div>
+
+    <div class="controls-container">
+        <div id="settings-panel">
+            <div class="control-group">
+                <label for="density-slider">Density</label>
+                <div class="slider-control">
+                    <input type="range" id="density-slider" min="0.5" max="4" step="0.1" value="1">
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Shape</label>
+                <div class="shape-selector">
+                    <button class="control-btn shape-btn active" data-shape="triangle">△</button>
+                    <button class="control-btn shape-btn" data-shape="square">□</button>
+                    <button class="control-btn shape-btn" data-shape="pentagon">⬠</button>
+                    <button class="control-btn shape-btn" data-shape="circle">○</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Background</label>
+                 <button id="change-bg-btn" class="control-btn" style="width: 100%;">Change Color</button>
+            </div>
+        </div>
+        <button id="settings-btn" class="control-btn">⚙️</button>
+    </div>
+
+    <script>
+        // --- Canvas and Context Setup ---
+        const canvas = document.getElementById('background-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // --- Controls ---
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const changeBgBtn = document.getElementById('change-bg-btn');
+        const shapeBtns = document.querySelectorAll('.shape-btn');
+        const densitySlider = document.getElementById('density-slider');
+        const body = document.body;
+        const messageBox = document.querySelector('.message-box');
+        const controlLabels = document.querySelectorAll('.control-group label');
+
+        // Settings Panel Toggle
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            settingsPanel.classList.toggle('visible');
+        });
+        window.addEventListener('click', (e) => {
+            if (settingsPanel.classList.contains('visible') && !settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                settingsPanel.classList.remove('visible');
+            }
+        });
+
+        // --- Configuration ---
+        const colorSchemes = [
+            { bg: 'radial-gradient(ellipse at center, #302b63 0%, #24243e 70%, #0f0c29 100%)', particle: 'rgba(255, 255, 255, 0.7)', line: 'rgba(255, 255, 255,', isDark: true },
+            { bg: '#000000', particle: 'rgba(255, 255, 255, 0.8)', line: 'rgba(255, 255, 255,', isDark: true },
+            { bg: 'radial-gradient(ellipse at center, #0f2027 0%, #203a43 50%, #2c5364 100%)', particle: 'rgba(230, 230, 250, 0.8)', line: 'rgba(230, 230, 250,', isDark: true },
+            { bg: '#f0f2f5', particle: 'rgba(0, 0, 0, 0.6)', line: 'rgba(0, 0, 0,', isDark: false },
+            { bg: 'radial-gradient(ellipse at center, #614385 0%, #516395 100%)', particle: 'rgba(255, 255, 255, 0.7)', line: 'rgba(255, 255, 255,', isDark: true },
+        ];
+        let currentSchemeIndex = 0;
+        let currentShape = 'triangle';
+        let densityMultiplier = 1;
+
+        // --- State ---
+        let particles = [];
+        const mouse = { x: null, y: null, radius: 150 };
+
+        // --- Event Listeners ---
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            init();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+        
+        window.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        changeBgBtn.addEventListener('click', () => {
+            currentSchemeIndex = (currentSchemeIndex + 1) % colorSchemes.length;
+            applyColorScheme();
+        });
+        
+        densitySlider.addEventListener('input', (e) => {
+            densityMultiplier = parseFloat(e.target.value);
+            init(); // Re-initialize with new density
+        });
+
+        shapeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                shapeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentShape = btn.dataset.shape;
+            });
+        });
+
+        // --- Particle Class ---
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 5 + 2;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+            }
+
+            draw(color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                
+                switch(currentShape) {
+                    case 'square':
+                        ctx.rect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+                        break;
+                    case 'pentagon':
+                        for (let i = 0; i < 5; i++) {
+                            ctx.lineTo(this.x + this.size * Math.cos(i * 2 * Math.PI / 5 + Math.PI / 2), this.y + this.size * Math.sin(i * 2 * Math.PI / 5 + Math.PI / 2));
+                        }
+                        break;
+                    case 'circle':
+                        ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+                        break;
+                    case 'triangle':
+                    default:
+                        ctx.moveTo(this.x, this.y - this.size / 1.5);
+                        ctx.lineTo(this.x - this.size / 1.7, this.y + this.size / 2.5);
+                        ctx.lineTo(this.x + this.size / 1.7, this.y + this.size / 2.5);
+                        break;
+                }
+                
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        // --- Core Functions ---
+        function init() {
+            particles = [];
+            // Calculate number of particles based on screen area and density multiplier
+            let baseParticleNumber = (canvas.height * canvas.width) / 12000;
+            let numberOfParticles = baseParticleNumber * densityMultiplier;
+            for (let i = 0; i < numberOfParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function connect() {
+            const scheme = colorSchemes[currentSchemeIndex];
+            
+            // Adjust connect distance based on density
+            const baseConnectDistance = 120;
+            const connectDistance = baseConnectDistance / Math.sqrt(densityMultiplier);
+            const connectDistanceSq = connectDistance * connectDistance;
+
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let distance = ((particles[a].x - particles[b].x) * (particles[a].x - particles[b].x))
+                               + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
+                    
+                    if (distance < connectDistanceSq) {
+                        let opacityValue = 1 - (distance / connectDistanceSq);
+                        ctx.strokeStyle = scheme.line + opacityValue + ')';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            // Connect to mouse
+            if (mouse.x !== null && mouse.y !== null) {
+                for (let i = 0; i < particles.length; i++) {
+                    let distance = ((particles[i].x - mouse.x) * (particles[i].x - mouse.x))
+                               + ((particles[i].y - mouse.y) * (particles[i].y - mouse.y));
+                    if (distance < (mouse.radius * mouse.radius)) {
+                        let opacityValue = 1 - (distance / (mouse.radius * mouse.radius));
+                        ctx.strokeStyle = scheme.line + opacityValue + ')';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const scheme = colorSchemes[currentSchemeIndex];
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw(scheme.particle);
+            }
+            connect();
+            requestAnimationFrame(animate);
+        }
+
+        function applyColorScheme() {
+            const scheme = colorSchemes[currentSchemeIndex];
+            body.style.background = scheme.bg;
+            const textColor = scheme.isDark ? 'white' : '#333';
+            
+            messageBox.style.color = textColor;
+            controlLabels.forEach(label => label.style.color = textColor);
+
+            if (scheme.isDark) {
+                messageBox.style.background = 'rgba(0, 0, 0, 0.2)';
+                messageBox.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            } else {
+                messageBox.style.background = 'rgba(255, 255, 255, 0.4)';
+                messageBox.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+            }
+        }
+
+        // --- Start ---
+        init();
+        applyColorScheme();
+        animate();
+    </script>
+</body>
+</html>

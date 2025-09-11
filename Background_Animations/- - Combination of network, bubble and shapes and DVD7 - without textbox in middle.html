@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Animations</title>
+    <style>
+        /* Basic CSS reset and body styling */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.5s ease;
+        }
+
+        /* Canvas styling to ensure it fills the background */
+        #background-canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Centered content container */
+        .content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: white;
+            text-align: center;
+        }
+
+        .message-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 { font-size: 2.5rem; margin: 0; }
+        p { font-size: 1.2rem; margin-top: 10px; }
+        
+        /* Main container for all controls */
+        .controls-container {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            z-index: 3;
+        }
+        
+        /* The settings panel, hidden by default */
+        #settings-panel {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 230px; 
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 18px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            transform: translateY(10px);
+            opacity: 0;
+        }
+
+        #settings-panel.visible {
+            display: flex;
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .control-group {
+            width: 100%;
+            text-align: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .control-group:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .control-group.hidden {
+            display: none;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: white;
+        }
+
+        .selector-group {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap; 
+        }
+        
+        .slider-control, .text-input-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 7px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: white;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: white;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+
+        /* Styling for the control buttons */
+        .control-btn {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .control-btn.active {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        
+        #settings-btn {
+            width: 50px;
+            height: 50px;
+            font-size: 1.6rem;
+            border-radius: 50%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+        }
+        
+        /* D-pad container */
+        .d-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 36px);
+            grid-template-rows: repeat(3, 36px);
+            gap: 4px;
+            justify-content: center;
+        }
+        
+        .d-pad-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.3rem;
+            line-height: 1;
+            padding: 0;
+            width: 36px;
+            height: 36px;
+        }
+
+        #dir-up { grid-column: 2; grid-row: 1; }
+        #dir-left { grid-column: 1; grid-row: 2; }
+        #dir-random { grid-column: 2; grid-row: 2; }
+        #dir-right { grid-column: 3; grid-row: 2; }
+        #dir-down { grid-column: 2; grid-row: 3; }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            margin-top: 10px;
+        }
+        .collapsible-content.open {
+            max-height: 200px; /* Adjust as needed */
+        }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="background-canvas"></canvas>
+    <div class="content">
+        <div class="message-box">
+            <h1>Animations</h1>
+            <p id="animation-title">Particle Network</p>
+        </div>
+    </div>
+
+    <div class="controls-container">
+        <div id="settings-panel">
+            <!-- Master Animation Toggle -->
+            <div class="control-group">
+                <label>Animation Type</label>
+                <div class="selector-group">
+                    <button class="control-btn anim-btn active" data-anim="network">Network</button>
+                    <button class="control-btn anim-btn" data-anim="bubbles">Bubbles</button>
+                    <button class="control-btn anim-btn" data-anim="shapes">Shapes</button>
+                    <button class="control-btn anim-btn" data-anim="dvd">DVD</button>
+                </div>
+            </div>
+            
+            <!-- DVD Controls -->
+            <div id="dvd-controls" class="control-group hidden">
+                 <div class="control-group">
+                    <label for="dvd-text-input">Logo Text</label>
+                    <div class="text-input-control">
+                        <input type="text" id="dvd-text-input" value="DVD">
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <label for="dvd-size-slider">Font Size</label>
+                    <div class="slider-control">
+                        <input type="range" id="dvd-size-slider" min="40" max="150" step="1" value="80">
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <label for="dvd-speed-slider">Speed</label>
+                    <div class="slider-control">
+                        <input type="range" id="dvd-speed-slider" min="0.5" max="5" step="0.1" value="2">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Particle Network Controls -->
+            <div id="network-controls" class="control-group">
+                <div class="control-group">
+                    <label for="density-slider">Density</label>
+                    <div class="slider-control">
+                        <input type="range" id="density-slider" min="0.5" max="4" step="0.1" value="1">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Shape</label>
+                    <div class="selector-group">
+                        <button class="control-btn network-shape-btn active" data-shape="triangle">△</button>
+                        <button class="control-btn network-shape-btn" data-shape="square">□</button>
+                        <button class="control-btn network-shape-btn" data-shape="pentagon">⬠</button>
+                        <button class="control-btn network-shape-btn" data-shape="circle">○</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Floating Shapes Controls -->
+            <div id="shapes-controls" class="control-group hidden">
+                 <div class="control-group">
+                    <label for="shapes-quantity-slider">Quantity</label>
+                    <div class="slider-control">
+                        <input type="range" id="shapes-quantity-slider" min="5" max="50" step="1" value="25">
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <label for="shapes-speed-slider">Speed</label>
+                    <div class="slider-control">
+                        <input type="range" id="shapes-speed-slider" min="0.2" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <label for="shapes-size-slider">Size</label>
+                    <div class="slider-control">
+                        <input type="range" id="shapes-size-slider" min="0.5" max="2.5" step="0.1" value="1">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <button class="control-btn collapsible-trigger" data-target="shapes-shape-options">Choose Shape</button>
+                    <div id="shapes-shape-options" class="collapsible-content">
+                        <div class="selector-group">
+                            <button class="control-btn floating-shape-btn active" data-shape="square_rounded">■</button>
+                            <button class="control-btn floating-shape-btn" data-shape="triangle_rounded">▲</button>
+                            <button class="control-btn floating-shape-btn" data-shape="pentagon">⬟</button>
+                            <button class="control-btn floating-shape-btn" data-shape="rectangle">▬</button>
+                            <button class="control-btn floating-shape-btn" data-shape="heart">♥</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bubble Controls -->
+            <div id="bubble-controls" class="control-group hidden">
+                 <div class="control-group">
+                    <label for="bubble-quantity-slider">Quantity</label>
+                    <div class="slider-control">
+                        <input type="range" id="bubble-quantity-slider" min="5" max="50" step="1" value="25">
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <label for="bubble-speed-slider">Speed</label>
+                    <div class="slider-control">
+                        <input type="range" id="bubble-speed-slider" min="0.2" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+                 <div class="control-group">
+                    <label for="bubble-size-slider">Size</label>
+                    <div class="slider-control">
+                        <input type="range" id="bubble-size-slider" min="0.5" max="2.5" step="0.1" value="1">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Directional Controls (Shared by Bubbles and Shapes) -->
+            <div id="direction-controls" class="control-group hidden">
+                <button class="control-btn collapsible-trigger" data-target="direction-options">Choose Direction</button>
+                <div id="direction-options" class="collapsible-content">
+                    <div class="d-pad">
+                        <button id="dir-up" class="control-btn d-pad-btn">↑</button>
+                        <button id="dir-left" class="control-btn d-pad-btn">←</button>
+                        <button id="dir-random" class="control-btn d-pad-btn">●</button>
+                        <button id="dir-right" class="control-btn d-pad-btn">→</button>
+                        <button id="dir-down" class="control-btn d-pad-btn">↓</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Common Controls -->
+            <div class="control-group">
+                <label>Background</label>
+                 <button id="change-bg-btn" class="control-btn" style="width: 100%;">Change Color</button>
+            </div>
+        </div>
+        <button id="settings-btn" class="control-btn">⚙️</button>
+    </div>
+
+    <script>
+        // --- Canvas and Context Setup ---
+        const canvas = document.getElementById('background-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // --- Global State ---
+        let particles = [];
+        let currentAnimation = 'network';
+        const mouse = { x: null, y: null, radius: 200 };
+
+        // --- Controls ---
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const changeBgBtn = document.getElementById('change-bg-btn');
+        const animBtns = document.querySelectorAll('.anim-btn');
+        const networkControls = document.getElementById('network-controls');
+        const bubbleControls = document.getElementById('bubble-controls');
+        const shapesControls = document.getElementById('shapes-controls');
+        const dvdControls = document.getElementById('dvd-controls');
+        const directionControls = document.getElementById('direction-controls');
+        const animationTitle = document.getElementById('animation-title');
+        
+        // Network Controls
+        const networkShapeBtns = document.querySelectorAll('.network-shape-btn');
+        const densitySlider = document.getElementById('density-slider');
+
+        // Shapes Controls
+        const floatingShapeBtns = document.querySelectorAll('.floating-shape-btn');
+        const shapesQuantitySlider = document.getElementById('shapes-quantity-slider');
+        const shapesSpeedSlider = document.getElementById('shapes-speed-slider');
+        const shapesSizeSlider = document.getElementById('shapes-size-slider');
+
+        // Bubble Controls
+        const bubbleQuantitySlider = document.getElementById('bubble-quantity-slider');
+        const bubbleSpeedSlider = document.getElementById('bubble-speed-slider');
+        const bubbleSizeSlider = document.getElementById('bubble-size-slider');
+
+        // DVD Controls
+        const dvdTextInput = document.getElementById('dvd-text-input');
+        const dvdSizeSlider = document.getElementById('dvd-size-slider');
+        const dvdSpeedSlider = document.getElementById('dvd-speed-slider');
+        
+        // --- Configuration ---
+        const colorSchemes = [
+            { bg: 'radial-gradient(ellipse at center, #302b63 0%, #24243e 70%, #0f0c29 100%)', particle: 'rgba(255, 255, 255, 0.7)', line: 'rgba(255, 255, 255,', shape: 'rgba(255, 255, 255, 0.15)', bubble: 'light', dvd: 'rgba(255, 255, 255, 0.4)', isDark: true },
+            { bg: '#000000', particle: 'rgba(255, 255, 255, 0.8)', line: 'rgba(255, 255, 255,', shape: 'rgba(255, 255, 255, 0.15)', bubble: 'light', dvd: 'rgba(255, 255, 255, 0.4)', isDark: true },
+            { bg: 'radial-gradient(ellipse at center, #0f2027 0%, #203a43 50%, #2c5364 100%)', particle: 'rgba(230, 230, 250, 0.8)', line: 'rgba(230, 230, 250,', shape: 'rgba(230, 230, 250, 0.15)', bubble: 'light', dvd: 'rgba(230, 230, 250, 0.4)', isDark: true },
+            { bg: '#f0f2f5', particle: 'rgba(0, 0, 0, 0.6)', line: 'rgba(0, 0, 0,', shape: 'rgba(0, 0, 0, 0.1)', bubble: 'dark', dvd: 'rgba(0, 0, 0, 0.3)', isDark: false },
+            { bg: 'radial-gradient(ellipse at center, #614385 0%, #516395 100%)', particle: 'rgba(255, 255, 255, 0.7)', line: 'rgba(255, 255, 255,', shape: 'rgba(255, 255, 255, 0.15)', bubble: 'light', dvd: 'rgba(255, 255, 255, 0.4)', isDark: true },
+        ];
+        let currentSchemeIndex = 0;
+        let currentNetworkShape = 'triangle';
+        let currentFloatingShape = 'square_rounded';
+        let currentDirection = 'up';
+        
+        // --- Event Listeners ---
+        settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); settingsPanel.classList.toggle('visible'); });
+        window.addEventListener('click', (e) => {
+            if (settingsPanel.classList.contains('visible') && !settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                settingsPanel.classList.remove('visible');
+            }
+        });
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; init(); });
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        window.addEventListener('mouseout', () => { mouse.x = null; mouse.y = null; });
+
+        changeBgBtn.addEventListener('click', () => {
+            currentSchemeIndex = (currentSchemeIndex + 1) % colorSchemes.length;
+            applyColorScheme();
+        });
+
+        animBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                animBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentAnimation = btn.dataset.anim;
+                
+                networkControls.classList.toggle('hidden', currentAnimation !== 'network');
+                bubbleControls.classList.toggle('hidden', currentAnimation !== 'bubbles');
+                shapesControls.classList.toggle('hidden', currentAnimation !== 'shapes');
+                dvdControls.classList.toggle('hidden', currentAnimation !== 'dvd');
+                directionControls.classList.toggle('hidden', currentAnimation === 'network' || currentAnimation === 'dvd');
+                
+                animationTitle.textContent = {
+                    network: 'Particle Network',
+                    bubbles: 'Floating Bubbles',
+                    shapes: 'Floating Shapes',
+                    dvd: 'Bouncing Logo'
+                }[currentAnimation];
+                
+                init();
+            });
+        });
+
+        // Control Listeners
+        densitySlider.addEventListener('input', () => { if(currentAnimation === 'network') init() });
+        networkShapeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                networkShapeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentNetworkShape = btn.dataset.shape;
+            });
+        });
+        
+        floatingShapeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                floatingShapeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFloatingShape = btn.dataset.shape;
+            });
+        });
+
+        bubbleQuantitySlider.addEventListener('input', updateParticleCount);
+        shapesQuantitySlider.addEventListener('input', updateParticleCount);
+
+        document.querySelectorAll('.collapsible-trigger').forEach(trigger => {
+            trigger.addEventListener('click', () => {
+                const targetId = trigger.dataset.target;
+                const target = document.getElementById(targetId);
+                target.classList.toggle('open');
+            });
+        });
+
+        document.getElementById('dir-up').addEventListener('click', () => setDirection('up'));
+        document.getElementById('dir-down').addEventListener('click', () => setDirection('down'));
+        document.getElementById('dir-left').addEventListener('click', () => setDirection('left'));
+        document.getElementById('dir-right').addEventListener('click', () => setDirection('right'));
+        document.getElementById('dir-random').addEventListener('click', () => setDirection('random'));
+
+        function setDirection(dir) {
+            currentDirection = dir;
+            particles.forEach(p => p.setDirection?.(dir));
+        }
+
+        // --- Particle Classes ---
+        class NetworkParticle {
+             constructor() { this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 5 + 2; this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5; }
+            update() { this.x += this.vx; this.y += this.vy; if (this.x < 0 || this.x > canvas.width) this.vx *= -1; if (this.y < 0 || this.y > canvas.height) this.vy *= -1; }
+            draw(color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                switch(currentNetworkShape) {
+                    case 'square': ctx.rect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size); break;
+                    case 'pentagon': for (let i = 0; i < 5; i++) { ctx.lineTo(this.x + this.size * Math.cos(i * 2 * Math.PI / 5 + Math.PI / 2), this.y + this.size * Math.sin(i * 2 * Math.PI / 5 + Math.PI / 2)); } break;
+                    case 'circle': ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2); break;
+                    default: ctx.moveTo(this.x, this.y - this.size / 1.5); ctx.lineTo(this.x - this.size / 1.7, this.y + this.size / 2.5); ctx.lineTo(this.x + this.size / 1.7, this.y + this.size / 2.5); break;
+                }
+                ctx.closePath(); ctx.fill();
+            }
+        }
+        
+        class FloatingParticle {
+            constructor() {
+                this.baseSize = (Math.random() * 40 + 20);
+                this.setInitialPosition(currentDirection);
+                this.setDirection(currentDirection);
+                this.angle = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.01;
+                this.wobble = 0.02;
+            }
+             setInitialPosition(dir) {
+                 switch (dir) {
+                    case 'up': this.x = Math.random() * canvas.width; this.y = canvas.height + this.baseSize + Math.random() * canvas.height; break;
+                    case 'down': this.x = Math.random() * canvas.width; this.y = -this.baseSize - Math.random() * canvas.height; break;
+                    case 'left': this.x = canvas.width + this.baseSize + Math.random() * canvas.width; this.y = Math.random() * canvas.height; break;
+                    case 'right': this.x = -this.baseSize - Math.random() * canvas.width; this.y = Math.random() * canvas.height; break;
+                    default: this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; break;
+                }
+            }
+            setDirection(dir) {
+                switch (dir) {
+                    case 'up': this.vx = (Math.random() - 0.5) * 0.3; this.vy = -(Math.random() * 0.8 + 0.2); break;
+                    case 'down': this.vx = (Math.random() - 0.5) * 0.3; this.vy = Math.random() * 0.8 + 0.2; break;
+                    case 'left': this.vx = -(Math.random() * 0.8 + 0.2); this.vy = (Math.random() - 0.5) * 0.3; break;
+                    case 'right': this.vx = Math.random() * 0.8 + 0.2; this.vy = (Math.random() - 0.5) * 0.3; break;
+                    case 'random': this.vx = (Math.random() - 0.5) * 0.8; this.vy = (Math.random() - 0.5) * 0.8; break;
+                }
+            }
+             update(speedSlider) {
+                const speed = parseFloat(speedSlider.value);
+                this.vx += (Math.random() - 0.5) * this.wobble;
+                this.vy += (Math.random() - 0.5) * this.wobble;
+                this.angle += this.rotationSpeed * speed;
+                
+                // Add mouse repulsion
+                let repulsion = { x: 0, y: 0 };
+                if (mouse.x !== null) {
+                    const dx = this.x - mouse.x;
+                    const dy = this.y - mouse.y;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < mouse.radius * mouse.radius) {
+                        const dist = Math.sqrt(distSq);
+                        const force = 1 - (dist / mouse.radius);
+                        repulsion.x = (dx / dist) * force * 2;
+                        repulsion.y = (dy / dist) * force * 2;
+                    }
+                }
+
+                this.x += this.vx * speed + repulsion.x;
+                this.y += this.vy * speed + repulsion.y;
+
+                if (this.vy < 0 && this.y + this.baseSize < 0) { this.y = canvas.height + this.baseSize; this.x = Math.random() * canvas.width; }
+                else if (this.vy > 0 && this.y - this.baseSize > canvas.height) { this.y = -this.baseSize; this.x = Math.random() * canvas.width; }
+                else if (this.vx < 0 && this.x + this.baseSize < 0) { this.x = canvas.width + this.baseSize; this.y = Math.random() * canvas.height; }
+                else if (this.vx > 0 && this.x - this.baseSize > canvas.width) { this.x = -this.baseSize; this.y = Math.random() * canvas.height; }
+            }
+        }
+
+        class BubbleParticle extends FloatingParticle {
+            draw(colors) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                const radius = (this.baseSize / 2) * parseFloat(bubbleSizeSlider.value);
+                const bodyGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+                bodyGradient.addColorStop(0, 'rgba(0, 0, 0, 0)'); bodyGradient.addColorStop(0.7, 'rgba(0, 0, 0, 0)'); bodyGradient.addColorStop(1, colors.bodyEdge);
+                ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fillStyle = bodyGradient; ctx.fill();
+                const highlightGradient = ctx.createRadialGradient(-radius * 0.4, -radius * 0.4, 0, 0, 0, radius);
+                highlightGradient.addColorStop(0, colors.highlight); highlightGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fillStyle = highlightGradient; ctx.fill();
+                ctx.beginPath(); ctx.arc(-radius * 0.4, -radius * 0.4, radius * 0.1, 0, Math.PI * 2); ctx.fillStyle = colors.specular; ctx.fill();
+                ctx.beginPath(); ctx.arc(0, 0, radius * 0.9, Math.PI * 0.2, Math.PI * 0.4); ctx.strokeStyle = colors.arc1; ctx.lineWidth = radius * 0.04; ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 0, radius * 0.85, Math.PI * 1.5, Math.PI * 1.7); ctx.strokeStyle = colors.arc2; ctx.lineWidth = radius * 0.05; ctx.stroke();
+                ctx.restore();
+            }
+        }
+        
+        class ShapeParticle extends FloatingParticle {
+            draw(color) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                const size = this.baseSize * parseFloat(shapesSizeSlider.value);
+                ctx.fillStyle = color;
+                ctx.beginPath();
+
+                switch(currentFloatingShape) {
+                    case 'triangle_rounded':
+                        const h = size * (Math.sqrt(3)/2);
+                        ctx.moveTo(0, -h/2); ctx.arcTo(-size/2, h/2, size/2, h/2, size*0.2); ctx.arcTo(size/2, h/2, 0, -h/2, size*0.2); ctx.arcTo(0, -h/2, -size/2, h/2, size*0.2);
+                        break;
+                    case 'pentagon':
+                        for (let i = 0; i < 5; i++) {
+                            ctx.lineTo(size/2 * Math.cos(i * 2 * Math.PI / 5 - Math.PI / 2), size/2 * Math.sin(i * 2 * Math.PI / 5 - Math.PI / 2));
+                        }
+                        break;
+                    case 'rectangle':
+                        ctx.roundRect(-size * 0.75, -size * 0.4, size * 1.5, size * 0.8, size * 0.2);
+                        break;
+                    case 'heart':
+                        const s = size * 0.05;
+                        ctx.moveTo(0, s * 2.5);
+                        ctx.bezierCurveTo(s * 5, -s * 2.5, s * 10, s * 2.5, 0, s * 10);
+                        ctx.bezierCurveTo(-s * 10, s * 2.5, -s * 5, -s * 2.5, 0, s * 2.5);
+                        break;
+                    case 'square_rounded':
+                    default:
+                        ctx.roundRect(-size/2, -size/2, size, size, size * 0.2);
+                        break;
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class DVDParticle {
+            constructor() {
+                this.updateDimensions();
+                this.x = Math.random() * (canvas.width - this.width);
+                this.y = Math.random() * (canvas.height - this.height);
+                this.baseSpeed = parseFloat(dvdSpeedSlider.value);
+                this.vx = (Math.random() > 0.5 ? 1 : -1) * this.baseSpeed;
+                this.vy = (Math.random() > 0.5 ? 1 : -1) * this.baseSpeed;
+                this.originalVx = this.vx;
+                this.originalVy = this.vy;
+                this.cornerHitInterval = setInterval(() => this.seekCorner(), 300000); // 5 minutes
+                this.isSeeking = false;
+            }
+            updateDimensions() {
+                this.text = dvdTextInput.value;
+                this.fontSize = parseInt(dvdSizeSlider.value);
+                ctx.font = `bold ${this.fontSize}px Inter`;
+                const textMetrics = ctx.measureText(this.text);
+                this.textWidth = textMetrics.width;
+                const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+                this.padding = this.fontSize * 0.25;
+                this.width = this.textWidth + this.padding * 2;
+                this.height = textHeight + this.padding * 2;
+            }
+            seekCorner() {
+                this.isSeeking = true;
+                const corners = [
+                    {x: 0, y: 0},
+                    {x: canvas.width - this.width, y: 0},
+                    {x: 0, y: canvas.height - this.height},
+                    {x: canvas.width - this.width, y: canvas.height - this.height}
+                ];
+                const target = corners[Math.floor(Math.random() * corners.length)];
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > 0) {
+                    this.vx = (dx / dist) * this.baseSpeed * 2; // Move faster to corner
+                    this.vy = (dy / dist) * this.baseSpeed * 2;
+                }
+            }
+            update() {
+                this.updateDimensions();
+                this.baseSpeed = parseFloat(dvdSpeedSlider.value);
+                let repulsion = { x: 0, y: 0 };
+                if (mouse.x !== null) {
+                    const centerX = this.x + this.width / 2;
+                    const centerY = this.y + this.height / 2;
+                    const dx = centerX - mouse.x;
+                    const dy = centerY - mouse.y;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < mouse.radius * mouse.radius) {
+                        const dist = Math.sqrt(distSq);
+                        const force = 1 - (dist / mouse.radius);
+                        repulsion.x = (dx / dist) * force * 5;
+                        repulsion.y = (dy / dist) * force * 5;
+                    }
+                }
+
+                if (!this.isSeeking) {
+                    const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    if (currentSpeed > 0) {
+                       this.vx = (this.vx / currentSpeed) * this.baseSpeed;
+                       this.vy = (this.vy / currentSpeed) * this.baseSpeed;
+                    }
+                    this.originalVx = this.vx;
+                    this.originalVy = this.vy;
+                }
+                
+                this.x += this.vx + repulsion.x;
+                this.y += this.vy + repulsion.y;
+
+                if (this.x <= 0 || this.x + this.width >= canvas.width) {
+                    this.vx *= -1;
+                    if (this.isSeeking) { this.isSeeking = false; }
+                    this.x = Math.max(0, Math.min(this.x, canvas.width - this.width));
+                    this.originalVx = this.vx;
+                }
+                if (this.y <= 0 || this.y + this.height >= canvas.height) {
+                    this.vy *= -1;
+                    if (this.isSeeking) { this.isSeeking = false; }
+                    this.y = Math.max(0, Math.min(this.y, canvas.height - this.height));
+                    this.originalVy = this.vy;
+                }
+            }
+            draw(color) {
+                ctx.fillStyle = color.replace(/[^,]+(?=\))/, '0.1'); 
+                ctx.beginPath();
+                ctx.roundRect(this.x, this.y, this.width, this.height, 15);
+                ctx.fill();
+                
+                ctx.fillStyle = color;
+                ctx.font = `bold ${this.fontSize}px Inter`;
+                const textMetrics = ctx.measureText(this.text);
+                ctx.fillText(this.text, this.x + this.padding, this.y + this.padding + textMetrics.actualBoundingBoxAscent);
+            }
+            destroy() {
+                clearInterval(this.cornerHitInterval);
+            }
+        }
+
+
+        // --- Core Functions ---
+        function init() {
+            if (particles.length === 1 && particles[0].destroy) {
+                particles[0].destroy();
+            }
+            particles = [];
+            let quantity;
+            switch(currentAnimation) {
+                case 'network':
+                    let baseParticleNumber = (canvas.height * canvas.width) / 12000;
+                    quantity = baseParticleNumber * parseFloat(densitySlider.value);
+                    for (let i = 0; i < quantity; i++) particles.push(new NetworkParticle());
+                    break;
+                case 'bubbles':
+                    quantity = parseInt(bubbleQuantitySlider.value);
+                    for (let i = 0; i < quantity; i++) particles.push(new BubbleParticle());
+                    break;
+                case 'shapes':
+                    quantity = parseInt(shapesQuantitySlider.value);
+                    for (let i = 0; i < quantity; i++) particles.push(new ShapeParticle());
+                    break;
+                case 'dvd':
+                    particles.push(new DVDParticle());
+                    break;
+            }
+        }
+
+        function updateParticleCount() {
+            if (currentAnimation !== 'bubbles' && currentAnimation !== 'shapes') return;
+            const targetCount = (currentAnimation === 'bubbles') ? parseInt(bubbleQuantitySlider.value) : parseInt(shapesQuantitySlider.value);
+            const currentCount = particles.length;
+            if (targetCount > currentCount) {
+                for (let i = 0; i < targetCount - currentCount; i++) {
+                    particles.push(currentAnimation === 'bubbles' ? new BubbleParticle() : new ShapeParticle());
+                }
+            } else if (targetCount < currentCount) {
+                particles.splice(0, currentCount - targetCount);
+            }
+        }
+
+        function connectNetwork() {
+            const scheme = colorSchemes[currentSchemeIndex];
+            const density = parseFloat(densitySlider.value);
+            const connectDistance = 120 / Math.sqrt(density);
+            const connectDistanceSq = connectDistance * connectDistance;
+
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let distance = ((particles[a].x - particles[b].x) ** 2) + ((particles[a].y - particles[b].y) ** 2);
+                    if (distance < connectDistanceSq) {
+                        let opacity = 1 - (distance / connectDistanceSq);
+                        ctx.strokeStyle = scheme.line + opacity + ')';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(particles[a].x, particles[a].y); ctx.lineTo(particles[b].x, particles[b].y); ctx.stroke();
+                    }
+                }
+            }
+            if (mouse.x !== null) {
+                for (let i = 0; i < particles.length; i++) {
+                    let distance = ((particles[i].x - mouse.x) ** 2) + ((particles[i].y - mouse.y) ** 2);
+                    if (distance < (mouse.radius ** 2)) {
+                        let opacity = 1 - (distance / (mouse.radius ** 2));
+                        ctx.strokeStyle = scheme.line + opacity + ')';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const scheme = colorSchemes[currentSchemeIndex];
+            
+            switch(currentAnimation) {
+                case 'network':
+                    particles.forEach(p => { p.update(); p.draw(scheme.particle); });
+                    connectNetwork();
+                    break;
+                case 'bubbles':
+                    let bubbleColors = scheme.bubble === 'dark' ? 
+                        { bodyEdge: 'rgba(0, 0, 0, 0.05)', highlight: 'rgba(0, 0, 0, 0.1)', specular: 'rgba(255, 255, 255, 0.7)', arc1: 'rgba(180, 40, 200, 0.25)', arc2: 'rgba(40, 180, 200, 0.25)'} :
+                        { bodyEdge: 'rgba(255, 255, 255, 0.08)', highlight: 'rgba(255, 255, 255, 0.2)', specular: 'rgba(255, 255, 255, 0.75)', arc1: 'rgba(255, 192, 203, 0.25)', arc2: 'rgba(173, 216, 230, 0.3)'};
+                    particles.forEach(p => { p.update(bubbleSpeedSlider); p.draw(bubbleColors); });
+                    break;
+                case 'shapes':
+                    particles.forEach(p => { p.update(shapesSpeedSlider); p.draw(scheme.shape); });
+                    break;
+                case 'dvd':
+                    particles.forEach(p => { p.update(); p.draw(scheme.dvd); });
+                    break;
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function applyColorScheme() {
+            const scheme = colorSchemes[currentSchemeIndex];
+            const { body } = document;
+            body.style.background = scheme.bg;
+            const textColor = scheme.isDark ? 'white' : '#333';
+            
+            const messageBox = document.querySelector('.message-box');
+            messageBox.style.color = textColor;
+            document.querySelectorAll('.control-group label').forEach(label => label.style.color = textColor);
+
+            if (scheme.isDark) {
+                messageBox.style.background = 'rgba(0, 0, 0, 0.2)';
+                messageBox.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            } else {
+                messageBox.style.background = 'rgba(255, 255, 255, 0.4)';
+                messageBox.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+            }
+        }
+
+        // --- Start ---
+        init();
+        applyColorScheme();
+        animate();
+    </script>
+</body>
+</html>
