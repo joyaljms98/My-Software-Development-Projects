@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Audio Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Library for reading audio metadata -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <style>
+        :root {
+            --sidebar-width: 320px;
+            --bg-color-for-wings: #111827; /* Default dark theme */
+        }
+
+        /* Custom scrollbar for webkit browsers */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        html.light .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; }
+        html.light .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        /* Custom styles for range inputs */
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: #4b5563; outline: none; opacity: 0.7; transition: opacity .2s; }
+        input[type="range"]:hover { opacity: 1; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #10b981; cursor: pointer; }
+        input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #10b981; cursor: pointer; }
+        html.light input[type="range"] { background: #d1d5db; }
+        
+        /* Vertical Volume Slider */
+        input[type="range"][orient="vertical"] {
+            writing-mode: bt-lr; /* IE */
+            -webkit-appearance: slider-vertical; /* WebKit */
+            width: 8px;
+            height: 100px;
+            padding: 0 5px;
+        }
+
+        /* Transitions */
+        #sidebar, #main-content, #controls-panel, #playlist-modal, #song-details-modal, #volume-popup { transition: all 0.3s ease-in-out; }
+        
+        /* Nested folder list styling */
+        .folder-tree details > summary { cursor: pointer; padding: 0.5rem; border-radius: 0.5rem; }
+        .folder-tree details > summary:hover { background-color: rgba(255, 255, 255, 0.05); }
+        .folder-tree details[open] > summary { font-weight: 600; }
+        .folder-tree .folder-content { padding-left: 1rem; }
+
+        /* Gradient Wing Styles */
+        .wing-bar {
+            position: absolute;
+            height: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            border-radius: 6px;
+            overflow: hidden; /* Important for the wipe effect */
+        }
+        .wing-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color-for-wings);
+            transition: transform 1.2s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .wing-bar.left { right: calc(100% + 32px); }
+        .wing-bar.right { left: calc(100% + 32px); }
+        .wing-bar.left::after { transform-origin: left; transform: scaleX(1); }
+        .wing-bar.right::after { transform-origin: right; transform: scaleX(1); }
+        .wing-bar.visible { opacity: 0.75; }
+        .wing-bar.visible.left::after, .wing-bar.visible.right::after { transform: scaleX(0); }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'gray-900': '#111827',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300 overflow-hidden">
+
+    <div class="relative min-h-screen flex">
+
+        <!-- Collapsible Sidebar -->
+        <aside id="sidebar" class="bg-white dark:bg-slate-800 shadow-lg fixed top-0 left-0 h-full z-30 flex flex-col transform -translate-x-full" style="width: var(--sidebar-width);">
+            <div class="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 gap-2">
+                <h2 class="text-xl font-bold">Library</h2>
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Search..." class="w-0 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 transition-all duration-300 opacity-0">
+                        <button id="search-btn" title="Search Songs" class="text-gray-500 dark:text-gray-400 hover:text-emerald-500 dark:hover:text-emerald-400 p-2 rounded-lg">
+                            <i class="fas fa-search text-lg"></i>
+                        </button>
+                    </div>
+                    <button id="open-folder-btn" title="Open Folder" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold p-2 rounded-lg transition-colors flex items-center justify-center">
+                        <i class="fas fa-folder-open text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Sidebar Tabs -->
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <nav class="flex -mb-px">
+                    <button data-tab="folders" class="sidebar-tab flex-1 py-3 px-1 text-center border-b-2 font-medium text-sm border-emerald-500 text-emerald-600 dark:text-emerald-400">Folders</button>
+                    <button data-tab="playlists" class="sidebar-tab flex-1 py-3 px-1 text-center border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200">Playlists</button>
+                </nav>
+            </div>
+            <!-- Tab Content -->
+            <div class="flex-grow overflow-hidden">
+                <div id="folders-content" class="p-4 h-full overflow-y-auto custom-scrollbar"></div>
+                <div id="playlists-content" class="p-4 h-full overflow-y-auto custom-scrollbar hidden"></div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 flex flex-col p-4">
+            <!-- Header Buttons -->
+            <header class="flex justify-between items-center w-full mb-8">
+                <button id="sidebar-toggle-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <div class="flex-grow"></div> <!-- Spacer -->
+                <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <i id="theme-icon" class="fas fa-sun text-xl"></i>
+                </button>
+            </header>
+
+            <!-- Centered Player -->
+            <div class="flex-grow flex items-center justify-center">
+                <div class="w-full max-w-md text-center">
+                     <div id="album-art-wrapper" class="relative w-full aspect-square mb-6">
+                        <div id="wing-container" class="absolute inset-0 z-0 pointer-events-none"></div>
+                        <div id="album-art-container" class="relative w-full h-full bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex items-center justify-center overflow-hidden z-10">
+                            <i class="fas fa-music text-8xl text-gray-300 dark:text-gray-600"></i>
+                            <img id="album-art" src="" class="relative w-full h-full object-cover hidden z-10" alt="Album Art" crossorigin="anonymous">
+                        </div>
+                    </div>
+                    <h2 id="track-title" class="text-3xl font-bold truncate">No track selected</h2>
+                    <p id="track-artist" class="text-md text-gray-500 dark:text-gray-400 mb-6">Select a folder to begin</p>
+
+                    <div class="mb-4 px-4">
+                        <input type="range" id="progress-bar" value="0" min="0" max="100" class="w-full h-2 rounded-lg cursor-pointer">
+                        <div class="flex justify-between text-xs font-mono mt-1">
+                            <span id="current-time">00:00</span>
+                            <span id="total-duration">00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-4 md:gap-6">
+                        <button id="favorite-btn" title="Favorite" class="text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-2xl"></button>
+                        <button id="add-to-playlist-btn-main" title="Add to Playlist" class="text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors text-2xl"><i class="fas fa-plus"></i></button>
+                        <button id="prev-btn" title="Previous" class="text-gray-600 dark:text-gray-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors text-3xl"><i class="fas fa-backward-step"></i></button>
+                        <button id="play-pause-btn" title="Play/Pause" class="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center text-4xl shadow-lg hover:bg-emerald-600 transition-all scale-100 hover:scale-105"><i id="play-pause-icon" class="fas fa-play"></i></button>
+                        <button id="next-btn" title="Next" class="text-gray-600 dark:text-gray-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors text-3xl"><i class="fas fa-forward-step"></i></button>
+                        <div class="relative group">
+                            <button id="main-mute-btn" title="Mute/Unmute" class="text-gray-600 dark:text-gray-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors text-2xl"><i id="main-volume-icon" class="fas fa-volume-high"></i></button>
+                            <div id="volume-popup" class="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 p-2 bg-slate-700 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
+                                <input type="range" id="popup-volume-slider" orient="vertical" value="0.4" min="0" max="1" step="0.01">
+                            </div>
+                        </div>
+                        <button id="loop-btn" title="Loop" class="text-gray-600 dark:text-gray-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors text-2xl"><i class="fas fa-repeat"></i></button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Floating Action Buttons -->
+        <button id="song-details-btn" title="Song Details" class="fixed bottom-6 left-6 w-14 h-14 bg-blue-500 text-white rounded-full flex items-center justify-center text-2xl shadow-lg hover:bg-blue-600 transition-all z-40"><i class="fas fa-info-circle"></i></button>
+        <button id="controls-toggle-btn" title="Audio Controls" class="fixed bottom-6 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center text-2xl shadow-lg hover:bg-emerald-600 transition-all z-40"><i class="fas fa-sliders"></i></button>
+
+        <!-- Controls Panel -->
+        <div id="controls-panel" class="fixed bottom-24 right-6 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 z-40 transform translate-y-8 opacity-0 pointer-events-none">
+            <h3 class="text-lg font-bold mb-4">Audio Controls</h3>
+            <div class="mb-4">
+                <label class="font-semibold text-sm mb-2 block">Volume</label>
+                <div class="flex items-center gap-3"><i id="panel-volume-icon" class="fas fa-volume-high w-5 text-center"></i><input type="range" id="volume-slider" value="0.4" min="0" max="1" step="0.01" class="w-full"></div>
+            </div>
+            <div class="mb-4">
+                <label class="font-semibold text-sm mb-2 block">Equalizer</label>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-4 items-center gap-2"><label for="bass-slider" class="text-xs font-bold text-right">BASS</label><input type="range" id="bass-slider" min="-10" max="10" value="0" step="1" class="col-span-3"></div>
+                    <div class="grid grid-cols-4 items-center gap-2"><label for="treble-slider" class="text-xs font-bold text-right">TREBLE</label><input type="range" id="treble-slider" min="-10" max="10" value="0" step="1" class="col-span-3"></div>
+                </div>
+            </div>
+            <div>
+                 <label class="font-semibold text-sm mb-2 block">Visuals</label>
+                 <div class="flex items-center justify-between">
+                     <span>Color Wings</span>
+                     <button id="wings-toggle-btn" class="w-12 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center transition-colors px-1"><span class="w-4 h-4 rounded-full bg-white transform transition-transform"></span></button>
+                 </div>
+            </div>
+        </div>
+        
+        <!-- Song Details Modal -->
+        <div id="song-details-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+            <div id="song-details-modal-content" class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md transform -translate-y-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Song Details</h3>
+                    <button id="close-details-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">&times;</button>
+                </div>
+                <div id="details-content-container" class="text-sm space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- Add to Playlist Modal -->
+        <div id="playlist-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+            <div id="playlist-modal-content" class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-sm transform -translate-y-8">
+                <h3 class="text-lg font-bold mb-4">Add to Playlist</h3>
+                <div id="existing-playlists-container" class="mb-4">
+                    <label class="font-semibold text-sm mb-2 block">Select Existing</label>
+                    <select id="existing-playlists-select" class="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 dark:border-gray-600"></select>
+                </div>
+                <div class="text-center my-2 text-sm text-gray-500">OR</div>
+                <div>
+                    <label for="new-playlist-name" class="font-semibold text-sm mb-2 block">Create New</label>
+                    <input type="text" id="new-playlist-name" placeholder="New playlist name..." class="w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button id="cancel-playlist-btn" class="py-2 px-4 rounded bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+                    <button id="save-playlist-btn" class="py-2 px-4 rounded bg-emerald-500 text-white hover:bg-emerald-600">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audio-player" class="hidden"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const audioPlayer = document.getElementById('audio-player');
+            const mainContent = document.getElementById('main-content');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+            const openFolderBtn = document.getElementById('open-folder-btn');
+            const foldersContent = document.getElementById('folders-content');
+            const playlistsContent = document.getElementById('playlists-content');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playPauseIcon = document.getElementById('play-pause-icon');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const progressBar = document.getElementById('progress-bar');
+            const currentTimeEl = document.getElementById('current-time');
+            const totalDurationEl = document.getElementById('total-duration');
+            const trackTitleEl = document.getElementById('track-title');
+            const trackArtistEl = document.getElementById('track-artist');
+            const albumArt = document.getElementById('album-art');
+            const albumArtContainer = document.getElementById('album-art-container');
+            const wingContainer = document.getElementById('wing-container');
+            const favoriteBtn = document.getElementById('favorite-btn');
+            const mainMuteBtn = document.getElementById('main-mute-btn');
+            const mainVolumeIcon = document.getElementById('main-volume-icon');
+            const popupVolumeSlider = document.getElementById('popup-volume-slider');
+            const loopBtn = document.getElementById('loop-btn');
+            const controlsToggleBtn = document.getElementById('controls-toggle-btn');
+            const controlsPanel = document.getElementById('controls-panel');
+            const volumeSlider = document.getElementById('volume-slider');
+            const panelVolumeIcon = document.getElementById('panel-volume-icon');
+            const bassSlider = document.getElementById('bass-slider');
+            const trebleSlider = document.getElementById('treble-slider');
+            const wingsToggleBtn = document.getElementById('wings-toggle-btn');
+            const themeToggleBtn = document.getElementById('theme-toggle-btn');
+            const themeIcon = document.getElementById('theme-icon');
+            const addToPlaylistBtnMain = document.getElementById('add-to-playlist-btn-main');
+            const playlistModal = document.getElementById('playlist-modal');
+            const playlistModalContent = document.getElementById('playlist-modal-content');
+            const existingPlaylistsSelect = document.getElementById('existing-playlists-select');
+            const newPlaylistNameInput = document.getElementById('new-playlist-name');
+            const savePlaylistBtn = document.getElementById('save-playlist-btn');
+            const cancelPlaylistBtn = document.getElementById('cancel-playlist-btn');
+            const songDetailsBtn = document.getElementById('song-details-btn');
+            const songDetailsModal = document.getElementById('song-details-modal');
+            const songDetailsModalContent = document.getElementById('song-details-modal-content');
+            const detailsContentContainer = document.getElementById('details-content-container');
+            const closeDetailsBtn = document.getElementById('close-details-btn');
+            const searchBtn = document.getElementById('search-btn');
+            const searchInput = document.getElementById('search-input');
+
+            // --- State ---
+            let masterFileHandles = [];
+            let currentTrackIndex = -1;
+            let currentTrackTags = null;
+            let isPlaying = false;
+            let loopState = 'none'; // 'none', 'all', 'one', 'shuffle'
+            let userPlaylists = {};
+            let favorites = new Set();
+            let areWingsEnabled = true;
+            let lastVolume = 0.4;
+
+            // --- Web Audio API ---
+            let audioContext, sourceNode, bassFilter, trebleFilter;
+            
+            // --- Initialization ---
+            function init() {
+                // Set initial volume using the perceptual (squared) model
+                audioPlayer.volume = Math.pow(0.4, 2);
+                volumeSlider.value = 0.4;
+                popupVolumeSlider.value = 0.4;
+                
+                loadUserData();
+                renderUserPlaylists();
+                updateVolumeIcons();
+                updateLoopBtnUI();
+                updateWingsToggleUI();
+                setupEventListeners();
+                applyTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            }
+
+            // --- Recursive Folder Scanning ---
+            async function scanDirectory(dirHandle, path, tree) {
+                for await (const entry of dirHandle.values()) {
+                    const currentPath = `${path}/${entry.name}`;
+                    if (entry.kind === 'file') {
+                        const extension = entry.name.split('.').pop().toLowerCase();
+                        const supportedTypes = ['mp3', 'wav', 'ogg', 'flac', 'm4a'];
+                        if (supportedTypes.includes(extension)) {
+                            entry.path = currentPath;
+                            masterFileHandles.push(entry);
+                            tree.files.push(entry);
+                        }
+                    } else if (entry.kind === 'directory') {
+                        tree.folders[entry.name] = { files: [], folders: {} };
+                        await scanDirectory(entry, currentPath, tree.folders[entry.name]);
+                    }
+                }
+            }
+            
+            // --- Player Logic ---
+            function playTrack(index) {
+                if (index < 0 || index >= masterFileHandles.length) return;
+                if (!audioContext) setupAudioContext();
+
+                currentTrackIndex = index;
+                const fileHandle = masterFileHandles[index];
+
+                fileHandle.getFile().then(file => {
+                    updateTrackInfoUI(file.name.replace(/\.[^/.]+$/, ""));
+                    currentTrackTags = { Title: file.name.replace(/\.[^/.]+$/, "") }; // Fallback
+                    
+                    const objectURL = URL.createObjectURL(file);
+                    audioPlayer.src = objectURL;
+                    audioPlayer.play().then(() => {
+                        isPlaying = true;
+                        updatePlayPauseIcon();
+                        highlightCurrentTrack();
+                        updateFavoriteIcon();
+                    }).catch(e => console.error("Error playing track:", e));
+
+                    window.jsmediatags.read(file, {
+                        onSuccess: (tag) => {
+                            currentTrackTags = tag.tags;
+                            updateTrackInfoUI(tag.tags.title, tag.tags.artist, tag.tags.picture);
+                        },
+                        onError: (error) => {
+                            console.log('Could not read tags:', error.type, error.info);
+                            updateTrackInfoUI(file.name.replace(/\.[^/.]+$/, ""));
+                        }
+                    });
+                });
+            }
+
+            // --- UI Rendering & Updates ---
+            function updateTrackInfoUI(title, artist = "Local File", picture) {
+                trackTitleEl.textContent = title || "Unknown Title";
+                trackArtistEl.textContent = artist;
+                
+                if (picture) {
+                    const base64 = `data:${picture.format};base64,${window.btoa(picture.data.reduce((acc, byte) => acc + String.fromCharCode(byte), ''))}`;
+                    albumArt.src = base64;
+                    albumArt.onload = () => generateThumbnailWings(albumArt);
+                    albumArt.classList.remove('hidden');
+                    albumArtContainer.querySelector('i').classList.add('hidden');
+                } else {
+                    albumArt.src = '';
+                    albumArt.classList.add('hidden');
+                    albumArtContainer.querySelector('i').classList.remove('hidden');
+                    generateThumbnailWings(null); // Generate wings with default colors
+                }
+            }
+            
+            function generateThumbnailWings(image) {
+                clearWings();
+                if (!areWingsEnabled) return;
+
+                const bgColor = document.documentElement.classList.contains('dark') ? '#111827' : '#f3f4f6';
+                let colors;
+
+                if (image && image.src) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    canvas.width = image.naturalWidth;
+                    canvas.height = image.naturalHeight;
+                    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+                    const segments = [];
+                    const segHeight = canvas.height / 5; // 5 rows
+                    const segWidth = canvas.width / 2; // 2 columns
+
+                    for (let i = 0; i < 5; i++) {
+                        segments.push({ x: 0, y: i * segHeight }); // Left column
+                        segments.push({ x: segWidth, y: i * segHeight }); // Right column
+                    }
+                    colors = segments.map(seg => getDominantColorForSegment(ctx, seg.x, seg.y, segWidth, segHeight));
+                } else {
+                    // Use default accent colors if no image
+                    colors = [
+                        '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', 
+                        '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef'
+                    ];
+                }
+                
+                const wingHeight = 20;
+                const wingMargin = 30; // Adjusted margin for 5 bars
+                const totalBlockHeight = (wingHeight * 5) + (wingMargin * 4);
+                const startY = (albumArtContainer.offsetHeight - totalBlockHeight) / 2;
+
+                const maxLength = 640;
+                const minLength = 320;
+                const lengthStep = (maxLength - minLength) / 4;
+
+                for (let i = 0; i < 5; i++) {
+                    const yPos = startY + i * (wingHeight + wingMargin);
+                    const currentLength = maxLength - (i * lengthStep);
+
+                    // Left Wing
+                    const leftWing = document.createElement('div');
+                    leftWing.className = 'wing-bar left';
+                    leftWing.style.top = `${yPos}px`;
+                    leftWing.style.width = `${currentLength}px`;
+                    leftWing.style.background = `linear-gradient(to right, ${bgColor}, ${colors[i * 2]})`;
+                    wingContainer.appendChild(leftWing);
+
+                    // Right Wing
+                    const rightWing = document.createElement('div');
+                    rightWing.className = 'wing-bar right';
+                    rightWing.style.top = `${yPos}px`;
+                    rightWing.style.width = `${currentLength}px`;
+                    rightWing.style.background = `linear-gradient(to left, ${bgColor}, ${colors[i * 2 + 1]})`;
+                    wingContainer.appendChild(rightWing);
+
+                    // Animate them in with a stagger
+                    setTimeout(() => {
+                        leftWing.classList.add('visible');
+                        rightWing.classList.add('visible');
+                    }, 50 * (i + 1));
+                }
+            }
+
+            function getDominantColorForSegment(ctx, x, y, width, height) {
+                const data = ctx.getImageData(x, y, width, height).data;
+                let r = 0, g = 0, b = 0, count = 0;
+                const step = Math.max(1, Math.floor(data.length / 4 / 100));
+                for (let i = 0; i < data.length; i += 4 * step) {
+                    if (data[i+3] > 128) {
+                        r += data[i]; g += data[i + 1]; b += data[i + 2];
+                        count++;
+                    }
+                }
+                if (count === 0) return 'rgb(128, 128, 128)';
+                return `rgb(${Math.floor(r/count)}, ${Math.floor(g/count)}, ${Math.floor(b/count)})`;
+            }
+
+            function clearWings() {
+                wingContainer.innerHTML = '';
+            }
+            
+            function updateWingsToggleUI() {
+                const thumb = wingsToggleBtn.querySelector('span');
+                if (areWingsEnabled) {
+                    wingsToggleBtn.classList.add('bg-emerald-500');
+                    wingsToggleBtn.classList.remove('bg-gray-300', 'dark:bg-gray-600');
+                    thumb.style.transform = 'translateX(1.5rem)';
+                } else {
+                    wingsToggleBtn.classList.remove('bg-emerald-500');
+                    wingsToggleBtn.classList.add('bg-gray-300', 'dark:bg-gray-600');
+                    thumb.style.transform = 'translateX(0)';
+                }
+            }
+
+            // --- All other functions (renderFolderTree, renderUserPlaylists, highlightCurrentTrack, etc.) remain the same ---
+            function renderFolderTree(tree, container) { container.innerHTML = (tree.files.length || Object.keys(tree.folders).length) ? '' : '<div class="p-3 text-center text-gray-500">No files in this folder.</div>'; const fragment = document.createDocumentFragment(); const sortedFolderNames = Object.keys(tree.folders).sort((a, b) => a.localeCompare(b)); const sortedFiles = tree.files.sort((a, b) => a.name.localeCompare(b.name)); sortedFolderNames.forEach(folderName => { const details = document.createElement('details'); const summary = document.createElement('summary'); summary.innerHTML = `<i class="fas fa-folder w-6"></i> ${folderName}`; details.appendChild(summary); const folderContent = document.createElement('div'); folderContent.className = 'folder-content'; renderFolderTree(tree.folders[folderName], folderContent); details.appendChild(folderContent); fragment.appendChild(details); }); sortedFiles.forEach(file => { const fileIndex = masterFileHandles.findIndex(h => h.path === file.path); const li = document.createElement('div'); li.className = 'p-2 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-between gap-3 track-item'; li.dataset.index = fileIndex; li.innerHTML = `<div class="flex items-center gap-3 overflow-hidden"><i class="fas fa-music w-6 text-gray-400"></i><span class="truncate">${file.name}</span></div>`; if (favorites.has(file.path)) { li.innerHTML += `<i class="fas fa-heart text-red-500 flex-shrink-0"></i>`; } fragment.appendChild(li); }); container.appendChild(fragment); }
+            function renderUserPlaylists() { playlistsContent.innerHTML = ''; if (Object.keys(userPlaylists).length === 0) { playlistsContent.innerHTML = '<div class="p-3 text-center text-gray-500 dark:text-gray-400">No playlists created.</div>'; return; } const fragment = document.createDocumentFragment(); Object.keys(userPlaylists).forEach(name => { const details = document.createElement('details'); const summary = document.createElement('summary'); summary.innerHTML = `<i class="fas fa-stream w-6"></i> ${name} <span class="text-xs text-gray-500 ml-2">(${userPlaylists[name].length})</span>`; details.appendChild(summary); const playlistContent = document.createElement('div'); playlistContent.className = 'folder-content'; userPlaylists[name].forEach(filePath => { const fileIndex = masterFileHandles.findIndex(h => h.path === filePath); if (fileIndex > -1) { const file = masterFileHandles[fileIndex]; const li = document.createElement('div'); li.className = 'p-2 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-3 track-item'; li.dataset.index = fileIndex; li.innerHTML = `<i class="fas fa-music w-6 text-gray-400"></i><span class="truncate">${file.name}</span>`; playlistContent.appendChild(li); } }); details.appendChild(playlistContent); fragment.appendChild(details); }); playlistsContent.appendChild(fragment); }
+            function highlightCurrentTrack() { document.querySelectorAll('.track-item').forEach(item => { const isCurrent = parseInt(item.dataset.index) === currentTrackIndex; item.classList.toggle('bg-emerald-100', isCurrent); item.classList.toggle('dark:bg-emerald-900', isCurrent); item.classList.toggle('text-emerald-700', isCurrent); item.classList.toggle('dark:text-emerald-300', isCurrent); }); }
+            function updateLoopBtnUI() { loopBtn.classList.remove('text-emerald-500', 'dark:text-emerald-400', 'text-blue-500', 'dark:text-blue-400'); if (loopState === 'all') { loopBtn.classList.add('text-emerald-500', 'dark:text-emerald-400'); loopBtn.title = "Looping All"; } else if (loopState === 'one') { loopBtn.classList.add('text-blue-500', 'dark:text-blue-400'); loopBtn.title = "Looping One"; } else { loopBtn.title = "Loop Off"; } }
+            function loadUserData() { userPlaylists = JSON.parse(localStorage.getItem('audioPlayerPlaylists') || '{}'); favorites = new Set(JSON.parse(localStorage.getItem('audioPlayerFavorites') || '[]')); areWingsEnabled = JSON.parse(localStorage.getItem('audioPlayerWingsEnabled') ?? 'true'); }
+            function saveUserData() { localStorage.setItem('audioPlayerPlaylists', JSON.stringify(userPlaylists)); localStorage.setItem('audioPlayerFavorites', JSON.stringify(Array.from(favorites))); localStorage.setItem('audioPlayerWingsEnabled', JSON.stringify(areWingsEnabled)); }
+            function showPlaylistModal() { if (currentTrackIndex === -1) { alert("Please play a track first."); return; } existingPlaylistsSelect.innerHTML = ''; Object.keys(userPlaylists).forEach(name => { const option = document.createElement('option'); option.value = name; option.textContent = name; existingPlaylistsSelect.appendChild(option); }); newPlaylistNameInput.value = ''; playlistModal.classList.remove('opacity-0', 'pointer-events-none'); playlistModalContent.classList.remove('-translate-y-8'); }
+            function hidePlaylistModal() { playlistModal.classList.add('opacity-0', 'pointer-events-none'); playlistModalContent.classList.add('-translate-y-8'); }
+            function showSongDetailsModal() { if (!currentTrackTags) { alert("No song details available."); return; } detailsContentContainer.innerHTML = ''; for (const [key, value] of Object.entries(currentTrackTags)) { if (typeof value === 'string' || typeof value === 'number') { detailsContentContainer.innerHTML += `<div class="grid grid-cols-3 gap-2"><strong class="col-span-1 capitalize">${key}:</strong> <span class="col-span-2 text-gray-600 dark:text-gray-400">${value}</span></div>`; } } songDetailsModal.classList.remove('opacity-0', 'pointer-events-none'); songDetailsModalContent.classList.remove('-translate-y-8'); }
+            function hideSongDetailsModal() { songDetailsModal.classList.add('opacity-0', 'pointer-events-none'); songDetailsModalContent.classList.add('-translate-y-8'); }
+            function setupAudioContext() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); sourceNode = audioContext.createMediaElementSource(audioPlayer); bassFilter = audioContext.createBiquadFilter(); bassFilter.type = 'lowshelf'; bassFilter.frequency.value = 300; trebleFilter = audioContext.createBiquadFilter(); trebleFilter.type = 'highshelf'; trebleFilter.frequency.value = 3000; sourceNode.connect(bassFilter).connect(trebleFilter).connect(audioContext.destination); } catch (e) { console.error("Web Audio API not supported.", e); } }
+            function togglePlayPause() { if (!audioPlayer.src) return; if (isPlaying) audioPlayer.pause(); else { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); audioPlayer.play(); } isPlaying = !isPlaying; updatePlayPauseIcon(); }
+            function updatePlayPauseIcon() { playPauseIcon.className = `fas ${isPlaying ? 'fa-pause' : 'fa-play'}`; }
+            function updateVolumeIcons() { const isMuted = audioPlayer.muted; let iconClass; if (isMuted) { iconClass = 'fa-volume-xmark'; } else if (audioPlayer.volume < 0.5) { iconClass = 'fa-volume-low'; } else { iconClass = 'fa-volume-high'; } mainVolumeIcon.className = `fas ${iconClass}`; panelVolumeIcon.className = `fas ${iconClass} w-5 text-center`; const sliderValue = isMuted ? 0 : Math.sqrt(audioPlayer.volume); volumeSlider.value = sliderValue; popupVolumeSlider.value = sliderValue; }
+            function updateFavoriteIcon() { if (currentTrackIndex === -1) return; const path = masterFileHandles[currentTrackIndex].path; favoriteBtn.querySelector('i').className = favorites.has(path) ? 'fas fa-heart text-red-500' : 'far fa-heart'; }
+            function formatTime(s) { return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
+            function applyTheme(theme) {
+                document.documentElement.classList.toggle('dark', theme === 'dark');
+                themeIcon.className = `fas ${theme === 'dark' ? 'fa-moon' : 'fa-sun'} text-xl`;
+                const bgColor = theme === 'dark' ? '#111827' : '#f3f4f6';
+                document.documentElement.style.setProperty('--bg-color-for-wings', bgColor);
+                if(albumArt.src || currentTrackIndex > -1) {
+                     generateThumbnailWings(albumArt.src ? albumArt : null);
+                }
+            }
+            function switchTab(activeTab) { document.querySelectorAll('.sidebar-tab').forEach(tab => { const isTabActive = tab.dataset.tab === activeTab; tab.classList.toggle('border-emerald-500', isTabActive); tab.classList.toggle('text-emerald-600', isTabActive); tab.classList.toggle('dark:text-emerald-400', isTabActive); tab.classList.toggle('border-transparent', !isTabActive); tab.classList.toggle('text-gray-500', !isTabActive); tab.setAttribute('aria-selected', isTabActive); }); document.getElementById('folders-content').classList.toggle('hidden', activeTab !== 'folders'); document.getElementById('playlists-content').classList.toggle('hidden', activeTab !== 'playlists'); }
+            function toggleControlsPanel(e) { e.stopPropagation(); controlsPanel.classList.toggle('opacity-0'); controlsPanel.classList.toggle('translate-y-8'); controlsPanel.classList.toggle('pointer-events-none'); }
+
+            // --- Event Listeners Setup ---
+            function setupEventListeners() {
+                openFolderBtn.addEventListener('click', async () => {
+                    try {
+                        const dirHandle = await window.showDirectoryPicker();
+                        masterFileHandles = [];
+                        const rootTree = { files: [], folders: {} };
+                        await scanDirectory(dirHandle, dirHandle.name, rootTree);
+                        if (masterFileHandles.length > 0) {
+                            renderFolderTree(rootTree, foldersContent);
+                            renderUserPlaylists();
+                            playTrack(0);
+                        } else {
+                            alert('No supported audio files found.');
+                        }
+                    } catch (err) { if (err.name !== 'AbortError') console.error('Error:', err); }
+                });
+
+                document.querySelector('.sidebar-tab[data-tab="folders"]').addEventListener('click', () => switchTab('folders'));
+                document.querySelector('.sidebar-tab[data-tab="playlists"]').addEventListener('click', () => switchTab('playlists'));
+                
+                document.body.addEventListener('click', e => {
+                    if (e.target.closest('.track-item')) {
+                        playTrack(parseInt(e.target.closest('.track-item').dataset.index));
+                    }
+                });
+
+                sidebarToggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('-translate-x-full');
+                    mainContent.style.marginLeft = sidebar.classList.contains('-translate-x-full') ? '0' : 'var(--sidebar-width)';
+                });
+
+                playPauseBtn.addEventListener('click', togglePlayPause);
+                nextBtn.addEventListener('click', () => playTrack((currentTrackIndex + 1) % masterFileHandles.length));
+                prevBtn.addEventListener('click', () => playTrack((currentTrackIndex - 1 + masterFileHandles.length) % masterFileHandles.length));
+                mainMuteBtn.addEventListener('click', () => { audioPlayer.muted = !audioPlayer.muted; updateVolumeIcons(); });
+                loopBtn.addEventListener('click', () => {
+                    if (loopState === 'none') loopState = 'all';
+                    else if (loopState === 'all') loopState = 'one';
+                    else loopState = 'none';
+                    updateLoopBtnUI();
+                });
+
+                audioPlayer.addEventListener('timeupdate', () => {
+                    if (audioPlayer.duration) {
+                        progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                        currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+                    }
+                });
+                audioPlayer.addEventListener('loadedmetadata', () => totalDurationEl.textContent = formatTime(audioPlayer.duration));
+                audioPlayer.addEventListener('volumechange', updateVolumeIcons);
+                audioPlayer.addEventListener('ended', () => {
+                    if (loopState === 'one') { audioPlayer.currentTime = 0; audioPlayer.play(); }
+                    else if (loopState === 'all') { playTrack((currentTrackIndex + 1) % masterFileHandles.length); }
+                });
+                progressBar.addEventListener('input', () => {
+                    if(audioPlayer.duration) audioPlayer.currentTime = (progressBar.value / 100) * audioPlayer.duration;
+                });
+                
+                const handleVolumeChange = (e) => {
+                    audioPlayer.muted = false;
+                    const newVolume = Math.pow(e.target.value, 2);
+                    audioPlayer.volume = newVolume;
+                };
+
+                volumeSlider.addEventListener('input', handleVolumeChange);
+                popupVolumeSlider.addEventListener('input', handleVolumeChange);
+                
+                favoriteBtn.addEventListener('click', () => {
+                    if (currentTrackIndex === -1) return;
+                    const path = masterFileHandles[currentTrackIndex].path;
+                    if (favorites.has(path)) favorites.delete(path);
+                    else favorites.add(path);
+                    saveUserData();
+                    updateFavoriteIcon();
+                    const rootTree = { files: masterFileHandles, folders: {} }; // Rebuild a flat tree for redraw
+                    renderFolderTree(rootTree, foldersContent);
+                    highlightCurrentTrack();
+                });
+                
+                addToPlaylistBtnMain.addEventListener('click', showPlaylistModal);
+                cancelPlaylistBtn.addEventListener('click', hidePlaylistModal);
+                savePlaylistBtn.addEventListener('click', () => {
+                    if (currentTrackIndex === -1) return;
+                    const track = masterFileHandles[currentTrackIndex];
+                    const name = newPlaylistNameInput.value.trim() || existingPlaylistsSelect.value;
+                    if (!name) { alert("Please select or create a playlist."); return; }
+                    if (!userPlaylists[name]) userPlaylists[name] = [];
+                    if (!userPlaylists[name].includes(track.path)) userPlaylists[name].push(track.path);
+                    saveUserData();
+                    renderUserPlaylists();
+                    hidePlaylistModal();
+                });
+
+                songDetailsBtn.addEventListener('click', showSongDetailsModal);
+                closeDetailsBtn.addEventListener('click', hideSongDetailsModal);
+
+                controlsToggleBtn.addEventListener('click', toggleControlsPanel);
+                document.addEventListener('click', e => {
+                    if (!controlsPanel.contains(e.target) && !controlsToggleBtn.contains(e.target)) {
+                        controlsPanel.classList.add('opacity-0', 'translate-y-8', 'pointer-events-none');
+                    }
+                });
+
+                themeToggleBtn.addEventListener('click', () => applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark'));
+                bassSlider.addEventListener('input', (e) => { if (bassFilter) bassFilter.gain.value = e.target.value; });
+                trebleSlider.addEventListener('input', (e) => { if (trebleFilter) trebleFilter.gain.value = e.target.value; });
+
+                wingsToggleBtn.addEventListener('click', () => {
+                    areWingsEnabled = !areWingsEnabled;
+                    updateWingsToggleUI();
+                    saveUserData();
+                    if (areWingsEnabled) {
+                        if (albumArt.src || currentTrackIndex > -1) generateThumbnailWings(albumArt.src ? albumArt : null);
+                    } else {
+                        clearWings();
+                    }
+                });
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>
